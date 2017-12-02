@@ -1,7 +1,10 @@
 package com.whackdata
 
-import java.nio.file.Paths
+import java.io.BufferedInputStream
+import java.nio.file.{Files, Paths}
 
+import com.sksamuel.scrimage.Image
+import com.sksamuel.scrimage.filter.BlurFilter
 import org.rogach.scallop.{ScallopConf, ScallopOption}
 
 class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
@@ -16,6 +19,10 @@ object Main extends App {
   // Use overlay
   val conf = new ParseArgs(args)
   val imagePath = Paths.get(conf.image())
-  println(imagePath)
+
+  val imageIn = new BufferedInputStream(Files.newInputStream(imagePath))
+  val imageOut = Utils.getOutputPath(imagePath)
+
+  Image.fromStream(imageIn).filter(BlurFilter).flipX.output(imageOut)
 
 }
