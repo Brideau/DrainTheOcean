@@ -37,11 +37,31 @@ object Main extends App {
     if (pixel.toColor == nonBorderColor) Pixel.apply(Color.White)
     else Pixel.apply(Color.Black)
   }
-  val classifyWhite = classifyBinary(Color.White)(_,_,_)
+
+  def NaiveFill(x: Int, y: Int, fillColour: Color, borderColor: Color)(image: Image): Image = {
+    try {
+      if (borderColor != image.color(x, y).toAWT) {
+        val img1 = NaiveFill(x, y, fillColour, borderColor)(image)
+        val img2 = NaiveFill(x - 1, y, fillColour, borderColor)(img1)
+        val img3 = NaiveFill(x + 1, y, fillColour, borderColor)(img2)
+        val img4 = NaiveFill(x, y - 1, fillColour, borderColor)(img3)
+        NaiveFill(x, y + 1, fillColour, borderColor)(img4)
+      } else {
+        image
+      }
+    } catch {
+      case _: Exception => image
+    }
+  }
 
   val imgCopy = Image.fromStream(imageIn).copy
+  val (width, height) = imgCopy.dimensions
+  val fillBlack = NaiveFill(width / 2, height / 2, Color.Black, Color.Black)(_)
+
   Utils.timems {
-    imgCopy.map(classifyWhite).output(imageOut)
+    val reclassImg = imgCopy.map(classifyBinary(Color.White)(_,_,_))
+    val filledImg = fillBlack(reclassImg)
+    filledImg.output(imageOut)
   }
 
 }
