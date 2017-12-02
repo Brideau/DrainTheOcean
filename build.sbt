@@ -2,14 +2,11 @@ name := "DrainOcean"
 
 version := "0.1"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.11.12"
 
-val scrimageVersion = "2.1.8"
-libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-core" % scrimageVersion
-libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-io-extra" % scrimageVersion
-libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % scrimageVersion
+libraryDependencies += "org.rogach" %% "scallop" % "3.1.1"
 
-libraryDependencies += "org.rogach" % "scallop_2.12" % "3.1.1"
+libraryDependencies += "org.locationtech.geotrellis" %% "geotrellis-raster" % "1.1.1"
 
 
 // These let you enter input in the terminal if running via SBT
