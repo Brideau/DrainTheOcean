@@ -1,6 +1,8 @@
 package com.whackdata
 
-import geotrellis.raster.{MutableArrayTile, Tile}
+import java.util.UUID
+
+import geotrellis.raster.MutableArrayTile
 
 import scala.util.Try
 import util.control.Breaks._
@@ -29,50 +31,55 @@ class FloodFill(val tileToFill: MutableArrayTile,
     tileToFill.get(col = x, row = y) == reachableValue
   }
 
-  private def addNextLine(minX: Int,
-                          maxX: Int,
-                          newY: Int,
-                          startingX: Int,
-                          prevRow: RasterRow,
+  private def addNextLine(newY: Int,
                           isNext: Boolean,
-                          downwards: Boolean): Unit = {
+                          downwards: Boolean,
+                          minX: Int,
+                          maxX: Int,
+                          startingX: Int,
+                          prevRow: RasterRow): Unit = {
     var rangeMinX = minX
     var inRange = false
 
-    breakable {
-      (minX to maxX).foreach { x =>
-        val empty = (isNext || x < prevRow.xMin || x > prevRow.xMax) && needsPainting(x, newY).getOrElse(false)
+    var x = minX
+    while (x <= maxX) {
+      val empty = (isNext || x < prevRow.xMin || x > prevRow.xMax) && needsPainting(x, newY).getOrElse(false)
 
-        if (!inRange && empty) {
-          rangeMinX = x
-          inRange = true
-        } else if (inRange && !empty) {
-          rowStack = RasterRow(xMin = rangeMinX,
-            xMax = x - 1,
-            y = newY,
-            down = Some(downwards),
-            extendLeft = rangeMinX == minX,
-            extendRight = false) :: rowStack
-          inRange = false
-        }
-
-        if (inRange) {
-          tileToFill.set(col = x, row = newY, value = colorValue)
-        }
-
-        if (!isNext && x == prevRow.xMin) {
-          break
-        }
+      if (!inRange && empty) {
+        rangeMinX = x
+        inRange = true
+      } else if (inRange && !empty) {
+        rowStack = RasterRow(
+          xMin = rangeMinX,
+          xMax = x - 1,
+          y = newY,
+          down = Some(downwards),
+          extendLeft = rangeMinX == minX,
+          extendRight = false
+        ) :: rowStack
+        inRange = false
       }
+
+      if (inRange) {
+        tileToFill.set(col = x, row = newY, value = colorValue)
+      }
+
+      if (!isNext && x == prevRow.xMin) {
+        x = prevRow.xMax
+      }
+
+      x = x + 1
     }
 
     if (inRange) {
-      rowStack = RasterRow(xMin = rangeMinX,
+      rowStack = RasterRow(
+        xMin = rangeMinX,
         xMax = startingX - 1,
         y = newY,
         down = Some(downwards),
         extendLeft = rangeMinX == minX,
-        extendRight = true) :: rowStack
+        extendRight = true
+      ) :: rowStack
     }
   }
 
@@ -128,21 +135,25 @@ class FloodFill(val tileToFill: MutableArrayTile,
       minX = if (minX > 1) minX - 1 else minX
       maxX = if (maxX < tileToFill.cols) maxX + 1 else maxX
 
-      if (y < tileToFill.rows) addNextLine(minX = minX,
-                                           maxX = maxX,
-                                           newY = y + 1,
-                                           startingX = x,
-                                           prevRow = currRow,
-                                           isNext = !up,
-                                           downwards = true)
+      if (y < tileToFill.rows) addNextLine(
+        newY = y + 1,
+        isNext = !up,
+        downwards = true,
+        minX = minX,
+        maxX = maxX,
+        startingX = x,
+        prevRow = currRow
+      )
 
-      if (y < tileToFill.rows) addNextLine(minX = minX,
-                                           maxX = maxX,
-                                           newY = y - 1,
-                                           startingX = x,
-                                           prevRow = currRow,
-                                           isNext = !down,
-                                           downwards = false)
+      if (y > 1) addNextLine(
+        newY = y - 1,
+        isNext = !down,
+        downwards = false,
+        minX = minX,
+        maxX = maxX,
+        startingX = x,
+        prevRow = currRow
+      )
 
     }
 
