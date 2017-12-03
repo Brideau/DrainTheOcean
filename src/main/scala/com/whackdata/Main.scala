@@ -53,18 +53,5 @@ object Main extends App {
   val filled = classGeo.mapTile(floodFillTile(1400, 1000)(_))
 
   GeoTiffWriter.write(filled, imageOut.toString)
-  // Try mutable
-
-
-
-
-
-
-//  def printPixel(x: Int, y: Int, pixel: Pixel): Pixel = {
-//    val color = pixel.toColor
-//    println(s"X: $x Y: $y RGB: (${color.red}, ${color.green}, ${color.blue})")
-//    pixel
-//  }
-//
 
 }

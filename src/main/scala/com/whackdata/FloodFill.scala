@@ -1,6 +1,8 @@
 package com.whackdata
 
 import geotrellis.raster.{MutableArrayTile, Tile}
+
+import scala.util.Try
 import util.control.Breaks._
 
 class FloodFill(val tileToFill: MutableArrayTile,
@@ -13,7 +15,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
   private case class RasterRow(xMin: Int,
                                xMax: Int,
                                y: Int,
-                               down: Boolean,
+                               down: Option[Boolean],
                                extendLeft: Boolean,
                                extendRight: Boolean)
 
@@ -23,7 +25,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
   // A simple function for checking if a pixel should be painted
   // Need to double check this as it might require it to be OK
   // if a cell gets painted twice
-  private def needsPainting(x: Int, y: Int): Boolean = {
+  private def needsPainting(x: Int, y: Int): Try[Boolean] = Try {
     tileToFill.get(col = x, row = y) == reachableValue
   }
 
@@ -33,13 +35,13 @@ class FloodFill(val tileToFill: MutableArrayTile,
                           startingX: Int,
                           prevRow: RasterRow,
                           isNext: Boolean,
-                          downwards: Boolean) = {
+                          downwards: Boolean): Unit = {
     var rangeMinX = minX
     var inRange = false
 
     breakable {
       (minX to maxX).foreach { x =>
-        val empty = (isNext || x < prevRow.xMin || x > prevRow.xMax) && needsPainting(x, newY)
+        val empty = (isNext || x < prevRow.xMin || x > prevRow.xMax) && needsPainting(x, newY).getOrElse(false)
 
         if (!inRange && empty) {
           rangeMinX = x
@@ -48,7 +50,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
           rowStack = RasterRow(xMin = rangeMinX,
             xMax = x - 1,
             y = newY,
-            down = downwards,
+            down = Some(downwards),
             extendLeft = rangeMinX == minX,
             extendRight = false) :: rowStack
           inRange = false
@@ -68,7 +70,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
       rowStack = RasterRow(xMin = rangeMinX,
         xMax = startingX - 1,
         y = newY,
-        down = downwards,
+        down = Some(downwards),
         extendLeft = rangeMinX == minX,
         extendRight = true) :: rowStack
     }
@@ -80,7 +82,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
     val initialRow = RasterRow(xMin = x,
                                xMax = x,
                                y = y,
-                               down = null,
+                               down = None,
                                extendLeft = true,
                                extendRight = true)
     rowStack = initialRow :: rowStack
@@ -93,27 +95,38 @@ class FloodFill(val tileToFill: MutableArrayTile,
       val currRow = rowStack.head
       rowStack = rowStack.tail
 
-      val down = if (currRow.down)  true else false
-      val up =   if (!currRow.down) true else false
+      val down = currRow.down match {
+        case Some(bool) => if (bool) true else false
+        case None => false
+      }
+      val up = currRow.down match {
+        case Some(bool) => if (!bool) true else false
+        case None => false
+      }
 
       var minX = currRow.xMin
       val y = currRow.y
 
       // Paint leftward until you reach a barrier
       if (currRow.extendLeft) {
-        while (minX > 0 && needsPainting(minX - 1, y)) {
+        while (minX > 1 && needsPainting(minX - 1, y).getOrElse(false)) {
           minX = minX - 1
           tileToFill.set(col = minX, row = y, value = colorValue)
         }
       }
 
+      // Paint rightward until you reach a barrier
       var maxX = currRow.xMax
       if (currRow.extendRight) {
-        while (maxX < tileToFill.cols - 1 && needsPainting(maxX + 1, y)) {
+        while (maxX < tileToFill.cols && needsPainting(maxX + 1, y).getOrElse(false)) {
           maxX = maxX + 1
           tileToFill.set(col = maxX, row = y, value = colorValue)
         }
       }
+
+      // Extend the range looked at for the next line
+      minX = if (minX > 1) minX - 1 else minX
+      maxX = if (maxX < tileToFill.cols) maxX + 1 else maxX
 
       if (y < tileToFill.rows) addNextLine(minX = minX,
                                            maxX = maxX,

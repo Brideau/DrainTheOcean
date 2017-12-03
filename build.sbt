@@ -9,7 +9,7 @@ libraryDependencies += "org.rogach" %% "scallop" % "3.1.1"
 libraryDependencies += "org.locationtech.geotrellis" %% "geotrellis-raster" % "1.1.1"
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.25"
 
-
+mainClass in assembly := Some("com.whackdata.Main")
 
 // These let you enter input in the terminal if running via SBT
 fork in run := true
@@ -22,5 +22,5 @@ initialize := {
   val current  = sys.props("java.specification.version")
   assert(current == required, s"Unsupported JDK: java.specification.version $current != $required")
 }
-javaOptions in run += "-Xmx8G"
-javaOptions in run += "-Xms8G"
+javaOptions in run += "-Xmx4G"
+javaOptions in run += "-Xms4G"
