@@ -1,4 +1,6 @@
-gdalwarp -s_srs EPSG:4326 -t_srs EPSG:4326 -tr 0.0166666666667 0.0166666666667 -dstnodata "-32768" -q -cutline /Users/B/Documents/Projects/DrainOcean/China.gpkg -cl China -of GTiff /Users/B/Documents/Projects/DrainOcean/ETOP/ETOPO1_Bed_c_geotiff.tif /Users/B/Documents/Projects/DrainOcean/Samples/ETOP_China.tif
+gdalwarp -s_srs EPSG:4326 -t_srs EPSG:4326 -tr 0.0166666666667 0.0166666666667 -dstnodata "-32768" -q -cutline /Users/B/Documents/Projects/DrainOcean/China.gpkg -cl China -crop_to_cutline -of GTiff /Users/B/Documents/Projects/DrainOcean/ETOP/ETOPO1_Bed_c_geotiff.tif /Users/B/Documents/Projects/DrainOcean/Samples/ETOP_China.tif
+
+gdalwarp -s_srs EPSG:4326 -t_srs EPSG:4326 -tr 0.0166666666667 0.0166666666667 -dstnodata "-32768" -q -of GTiff /Users/B/Documents/Projects/DrainOcean/ETOP/ETOPO1_Bed_c_geotiff.tif /Users/B/Documents/Projects/DrainOcean/ETOP_Cleaned.tif
 
 
 Usage: gdalwarp [--help-general] [--formats]
