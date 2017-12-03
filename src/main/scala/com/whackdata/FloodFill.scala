@@ -4,38 +4,47 @@ import geotrellis.raster.MutableArrayTile
 
 import scala.util.Try
 
-// From http://lodev.org/cgtutor/floodfill.html#8-Way_Method_With_Stack
+// Based on the flood fill algorithm by Lode Vandevenne:
+// http://lodev.org/cgtutor/floodfill.html#8-Way_Method_With_Stack
 
 class FloodFill(val tileToFill: MutableArrayTile,
                 val barrierVal: Int = 0,
                 val reachableValue: Int = 1,
                 val colorValue: Int = 2) {
 
-  // A simple class to store information about rows of the raster
-  // that still need to be scanned
+  // A simple class for storing seed pixels that are used to check
+  // a section of a line that require painting
   private case class Pixel(x: Int, y: Int)
 
-  // The stack where yet-to-be-scanned rows will be stored
+  // The stack that stores yet-to-be-checked seed pixels
   private var rowStack = List[Pixel]()
 
+  // Checks if a pixel represents a "barrier" point (elevation too high),
+  // an "reachable" point (elevation at or below current threshold) or
+  // returns as a Failure if the pixel is outside the raster's bounds
   private def needsPainting(x: Int, y: Int): Try[Boolean] = Try {
     tileToFill.get(col = x, row = y) == reachableValue
   }
 
   def fill(x: Int, y: Int): Unit = {
+    // If the starting pixel is a barrier or is already painted,
+    // don't do anything
     if (needsPainting(x, y).getOrElse(false)) {
 
+      // Add the starting pixel to the stack
       rowStack = Pixel(x, y) :: rowStack
 
       val tileWidth = tileToFill.cols
       val tileHeight = tileToFill.rows
 
       while (rowStack.nonEmpty) {
+        // Pop the next pixel off the stack
         val currPixel = rowStack.head
         rowStack = rowStack.tail
 
         var x1 = currPixel.x
         val y = currPixel.y
+
         // Find the left-most point in the row that requires painting
         while (needsPainting(x1, y).getOrElse(false)) x1 = x1 - 1
         x1 = x1 + 1
