@@ -1,11 +1,10 @@
 package com.whackdata
 
-import java.util.UUID
-
 import geotrellis.raster.MutableArrayTile
 
 import scala.util.Try
-import util.control.Breaks._
+
+// From http://lodev.org/cgtutor/floodfill.html#8-Way_Method_With_Stack
 
 class FloodFill(val tileToFill: MutableArrayTile,
                 val barrierVal: Int = 0,
@@ -14,148 +13,57 @@ class FloodFill(val tileToFill: MutableArrayTile,
 
   // A simple class to store information about rows of the raster
   // that still need to be scanned
-  private case class RasterRow(xMin: Int,
-                               xMax: Int,
-                               y: Int,
-                               down: Option[Boolean],
-                               extendLeft: Boolean,
-                               extendRight: Boolean)
+  private case class Pixel(x: Int, y: Int)
 
   // The stack where yet-to-be-scanned rows will be stored
-  private var rowStack = List[RasterRow]()
+  private var rowStack = List[Pixel]()
 
-  // A simple function for checking if a pixel should be painted
-  // Need to double check this as it might require it to be OK
-  // if a cell gets painted twice
   private def needsPainting(x: Int, y: Int): Try[Boolean] = Try {
     tileToFill.get(col = x, row = y) == reachableValue
   }
 
-  private def addNextLine(newY: Int,
-                          isNext: Boolean,
-                          downwards: Boolean,
-                          minX: Int,
-                          maxX: Int,
-                          startingX: Int,
-                          prevRow: RasterRow): Unit = {
-    var rangeMinX = minX
-    var inRange = false
-
-    var x = minX
-    while (x <= maxX) {
-      val empty = (isNext || x < prevRow.xMin || x > prevRow.xMax) && needsPainting(x, newY).getOrElse(false)
-
-      if (!inRange && empty) {
-        rangeMinX = x
-        inRange = true
-      } else if (inRange && !empty) {
-        rowStack = RasterRow(
-          xMin = rangeMinX,
-          xMax = x - 1,
-          y = newY,
-          down = Some(downwards),
-          extendLeft = rangeMinX == minX,
-          extendRight = false
-        ) :: rowStack
-        inRange = false
-      }
-
-      if (inRange) {
-        tileToFill.set(col = x, row = newY, value = colorValue)
-      }
-
-      if (!isNext && x == prevRow.xMin) {
-        x = prevRow.xMax
-      }
-
-      x = x + 1
-    }
-
-    if (inRange) {
-      rowStack = RasterRow(
-        xMin = rangeMinX,
-        xMax = startingX - 1,
-        y = newY,
-        down = Some(downwards),
-        extendLeft = rangeMinX == minX,
-        extendRight = true
-      ) :: rowStack
-    }
-  }
-
   def fill(x: Int, y: Int): Unit = {
+    if (needsPainting(x, y).getOrElse(false)) {
 
-    // Add the starting point to the stack
-    val initialRow = RasterRow(xMin = x,
-                               xMax = x,
-                               y = y,
-                               down = None,
-                               extendLeft = true,
-                               extendRight = true)
-    rowStack = initialRow :: rowStack
+      rowStack = Pixel(x, y) :: rowStack
 
-    // Paint the starting pixel
-    tileToFill.set(col = x, row = y, value = colorValue)
+      val tileWidth = tileToFill.cols
+      val tileHeight = tileToFill.rows
 
-    while (rowStack.nonEmpty) {
-      // Pop off the next value in the stack
-      val currRow = rowStack.head
-      rowStack = rowStack.tail
+      while (rowStack.nonEmpty) {
+        val currPixel = rowStack.head
+        rowStack = rowStack.tail
 
-      val down = currRow.down match {
-        case Some(bool) => if (bool) true else false
-        case None => false
-      }
-      val up = currRow.down match {
-        case Some(bool) => if (!bool) true else false
-        case None => false
-      }
+        var x1 = currPixel.x
+        val y = currPixel.y
+        // Find the left-most point in the row
+        while (x1 >= 1 && needsPainting(x1, y).getOrElse(false)) x1 = x1 - 1
+        x1 = x1 + 1
 
-      var minX = currRow.xMin
-      val y = currRow.y
+        var spanAbove = false
+        var spanBelow = false
 
-      // Paint leftward until you reach a barrier
-      if (currRow.extendLeft) {
-        while (minX > 1 && needsPainting(minX - 1, y).getOrElse(false)) {
-          minX = minX - 1
-          tileToFill.set(col = minX, row = y, value = colorValue)
+        while (x1 < tileWidth && needsPainting(x1, y).getOrElse(false)) {
+          tileToFill.set(x1, y, colorValue)
+
+          if (!spanAbove && y > 1 && needsPainting(x1, y - 1).getOrElse(false)) {
+            rowStack = Pixel(x1, y - 1) :: rowStack
+            spanAbove = true
+          } else if (spanAbove && y > 1 && !needsPainting(x1, y - 1).getOrElse(false)) {
+            spanAbove = false
+          }
+
+          if (!spanBelow && y < tileHeight && needsPainting(x1, y + 1).getOrElse(false)) {
+            rowStack = Pixel(x1, y + 1) :: rowStack
+          } else if (spanBelow && y < tileHeight && !needsPainting(x1, y + 1).getOrElse(false)) {
+            spanBelow = false
+          }
+
+          x1 = x1 + 1
         }
+
       }
-
-      // Paint rightward until you reach a barrier
-      var maxX = currRow.xMax
-      if (currRow.extendRight) {
-        while (maxX < tileToFill.cols && needsPainting(maxX + 1, y).getOrElse(false)) {
-          maxX = maxX + 1
-          tileToFill.set(col = maxX, row = y, value = colorValue)
-        }
-      }
-
-      // Extend the range looked at for the next line
-      minX = if (minX > 1) minX - 1 else minX
-      maxX = if (maxX < tileToFill.cols) maxX + 1 else maxX
-
-      if (y < tileToFill.rows) addNextLine(
-        newY = y + 1,
-        isNext = !up,
-        downwards = true,
-        minX = minX,
-        maxX = maxX,
-        startingX = x,
-        prevRow = currRow
-      )
-
-      if (y > 1) addNextLine(
-        newY = y - 1,
-        isNext = !down,
-        downwards = false,
-        minX = minX,
-        maxX = maxX,
-        startingX = x,
-        prevRow = currRow
-      )
 
     }
-
   }
 }
