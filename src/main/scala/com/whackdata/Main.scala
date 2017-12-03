@@ -27,14 +27,6 @@ object Main extends App {
     streaming = false
   )
 
-  // geoTiff.tile.map(fn(Int => Int)
-  // geoTiff.tile.map(fn( Int, Int, Int => Int))
-  // geoTiff.tile.mutable
-  // geoTiff.tile.get(col, row)
-  // geoTiff.tile.combine((Tile2)(Int, Int) => Int)
-  // geoTiff.tile.rows / cols / size / dimensions
-  // geoTiff.tile
-
   def classifyBinary(maxElevation: Int)(x: Int, y: Int, elevation: Int): Int = {
     if (elevation > maxElevation) 0 else 1
   }
@@ -47,7 +39,9 @@ object Main extends App {
 
   def floodFillTile(x: Int, y: Int)(tileIn: Tile): Tile = {
     val fillObj = new FloodFill(tileIn.mutable)
-    fillObj.fill(x, y)
+    Utils.timems {
+      fillObj.fill(x, y) // 288ms - 313ms
+    }
     fillObj.tileToFill
   }
   val filled = classGeo.mapTile(floodFillTile(1400, 1000)(_))
