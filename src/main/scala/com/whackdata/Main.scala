@@ -42,19 +42,17 @@ object Main extends App {
     tileIn.map(mapFunction)
   }
 
-  val binFn = classifyBinary(maxElevation = 2160)(_,_,_)
-  val classify = mapOverTilePixels(binFn)
+  val binFn = classifyBinary(maxElevation = 0)(_,_,_)
+  val classGeo = geoTiff.mapTile(mapOverTilePixels(binFn)(_))
 
-  def fillTile(tileIn: Tile): Tile = {
-
+  def floodFillTile(x: Int, y: Int)(tileIn: Tile): Tile = {
+    val fillObj = new FloodFill(tileIn.mutable)
+    fillObj.fill(x, y)
+    fillObj.tileToFill
   }
+  val filled = classGeo.mapTile(floodFillTile(1400, 1000)(_))
 
-
-  val classGeo = Utils.timems {
-     geoTiff.mapTile(classify)
-  }
-
-  GeoTiffWriter.write(classGeo, imageOut.toString)
+  GeoTiffWriter.write(filled, imageOut.toString)
   // Try mutable
 
 
