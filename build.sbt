@@ -7,6 +7,8 @@ scalaVersion := "2.11.12"
 libraryDependencies += "org.rogach" %% "scallop" % "3.1.1"
 
 libraryDependencies += "org.locationtech.geotrellis" %% "geotrellis-raster" % "1.1.1"
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.25"
+
 
 
 // These let you enter input in the terminal if running via SBT
