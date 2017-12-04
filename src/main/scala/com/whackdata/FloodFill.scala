@@ -29,6 +29,12 @@ class FloodFill(val tileToFill: MutableArrayTile,
     tileToFill.get(col = x, row = y) == reachableValue
   }
 
+  // Used to allow the flood fill algorithm to wrap around the
+  // edges of the map raster
+  def wrapLongitude(width: Int)(x: Int): Int = {
+    if (x >= 1) x % width else (x % width) + width
+  }
+
   def fill(x: Int, y: Int): Unit = {
     // If the starting pixel is a barrier or is already painted,
     // don't do anything
@@ -40,48 +46,53 @@ class FloodFill(val tileToFill: MutableArrayTile,
       val tileWidth = tileToFill.cols
       val tileHeight = tileToFill.rows
 
+      val wrap = wrapLongitude(tileWidth)(_)
+
       while (rowStack.nonEmpty) {
         // Pop the next pixel off the stack
         val currPixel = rowStack.head
         rowStack = rowStack.tail
 
-        var x1 = currPixel.x
+        var currX = currPixel.x
         val y = currPixel.y
 
         // Find the left-most point in the row that requires painting
-        while (needsPainting(x1, y).getOrElse(false)) x1 = x1 - 1
-        x1 = x1 + 1
+        while (
+          needsPainting(wrap(currX), y).getOrElse(false) &&
+          currPixel.x - currX != tileWidth
+        ) currX -= 1
+        currX =  wrap(currX + 1)
 
         // Have we checked the rows above and below?
         var spanAbove = false
         var spanBelow = false
 
         // Scan the row left to right until you reach a barrier
-        while (x1 < tileWidth && needsPainting(x1, y).getOrElse(false)) {
+        while (needsPainting(currX, y).getOrElse(false)) {
           // Colour in the pixels as you go
-          tileToFill.set(x1, y, colorValue)
+          tileToFill.set(currX, y, colorValue)
 
           // If the row above hasn't been checked yet, and the pixel above
           // the current pixel needs painting
-          if (!spanAbove && needsPainting(x1, y - 1).getOrElse(false)) {
+          if (!spanAbove && needsPainting(currX, y - 1).getOrElse(false)) {
             // Add the pixel to the stack and set a flag saying that you've
             // check the row above
-            rowStack = Pixel(x1, y - 1) :: rowStack
+            rowStack = Pixel(currX, y - 1) :: rowStack
             spanAbove = true
             // Once you come across a barrier in the above row, reset the spanAbove
             // flag since it represents a discontinuity in the line above
-          } else if (spanAbove && !needsPainting(x1, y - 1).getOrElse(false)) {
+          } else if (spanAbove && !needsPainting(currX, y - 1).getOrElse(false)) {
             spanAbove = false
           }
 
           // Same as above, but checks the pixels below the current line
-          if (!spanBelow && needsPainting(x1, y + 1).getOrElse(false)) {
-            rowStack = Pixel(x1, y + 1) :: rowStack
-          } else if (spanBelow && y < tileHeight && !needsPainting(x1, y + 1).getOrElse(false)) {
+          if (!spanBelow && needsPainting(currX, y + 1).getOrElse(false)) {
+            rowStack = Pixel(currX, y + 1) :: rowStack
+          } else if (spanBelow && y < tileHeight && !needsPainting(currX, y + 1).getOrElse(false)) {
             spanBelow = false
           }
 
-          x1 = x1 + 1
+          currX = wrap(currX + 1)
         }
 
       }
