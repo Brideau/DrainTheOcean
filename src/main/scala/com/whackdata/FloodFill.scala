@@ -14,7 +14,10 @@ class FloodFill(val tileToFill: MutableArrayTile,
 
   // A simple class for storing seed pixels that are used to check
   // a section of a line that require painting
-  private case class Pixel(x: Int, y: Int)
+  private class  Pixel(val x: Int, val y: Int)
+  private object Pixel {
+    def apply(x: Int, y: Int) = new Pixel(x, y)
+  }
 
   // The stack that stores yet-to-be-checked seed pixels
   private var rowStack = List[Pixel]()

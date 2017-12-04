@@ -34,17 +34,21 @@ object Main extends App {
     tileIn.map(mapFunction)
   }
 
-  val binFn = classifyBinary(maxElevation = 0)(_,_,_)
+  val binFn = classifyBinary(maxElevation = 1100)(_,_,_)
   val classGeo = geoTiff.mapTile(mapOverTilePixels(binFn)(_))
 
-  def floodFillTile(x: Int, y: Int)(tileIn: Tile): Tile = {
+  def floodFillTile(xStart: Int, yStart: Int)(tileIn: Tile): Tile = {
     val fillObj = new FloodFill(tileIn.mutable)
     Utils.timems {
-      fillObj.fill(x, y) // 288ms - 313ms
+      fillObj.fill(xStart, yStart) // 56s for full globe
     }
     fillObj.tileToFill
   }
-  val filled = classGeo.mapTile(floodFillTile(1400, 1000)(_))
+  val filled = classGeo.mapTile(floodFillTile(xStart = 3000, yStart = 1000)(_))
+
+  // TODO: Reproject to nicer projection
+  // TODO: Color the earth brown and water blue
+  // TODO: Join all the layers
 
   GeoTiffWriter.write(filled, imageOut.toString)
 
