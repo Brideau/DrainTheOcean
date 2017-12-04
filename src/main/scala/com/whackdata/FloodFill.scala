@@ -6,6 +6,10 @@ import scala.util.Try
 
 // Based on the flood fill algorithm by Lode Vandevenne:
 // http://lodev.org/cgtutor/floodfill.html#8-Way_Method_With_Stack
+// Modified to support wrap-around at the left and right edges
+// to support geographic flood fills. Expects a mutable raster
+// tile that has already been classified into areas with elevation
+// above or below some threshold.
 
 class FloodFill(val tileToFill: MutableArrayTile,
                 val barrierVal: Int = 0,
@@ -32,7 +36,9 @@ class FloodFill(val tileToFill: MutableArrayTile,
   // Used to allow the flood fill algorithm to wrap around the
   // edges of the map raster
   def wrapLongitude(width: Int)(x: Int): Int = {
-    if (x >= 1) x % width else (x % width) + width
+    if (x >= 1 && x <= width) x
+    else if (x > width) x - width
+    else x + width
   }
 
   def fill(x: Int, y: Int): Unit = {

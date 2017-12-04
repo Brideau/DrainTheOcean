@@ -1,12 +1,13 @@
 package com.whackdata
 
 import java.nio.file.Paths
+
 import geotrellis.raster._
 import geotrellis.raster.io.geotiff._
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
-
 import org.rogach.scallop.{ScallopConf, ScallopOption}
+import org.slf4j.LoggerFactory
 
 class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
   val image = opt[String]()
@@ -18,6 +19,8 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
 
 object Main extends App {
 
+  val logger = LoggerFactory.getLogger("MainLogger")
+
   val conf = new ParseArgs(args)
   val imagePath = Paths.get(conf.image())
 
@@ -26,6 +29,8 @@ object Main extends App {
   val maxElev = conf.elev()
 
   val imageOut = Utils.getOutputPath(imagePath)
+
+  logger.info("Reading in GeoTiff")
   val geoTiff: SinglebandGeoTiff = GeoTiffReader.readSingleband(
     imagePath.toString,
     decompress = false,
@@ -39,18 +44,24 @@ object Main extends App {
     tileIn.map(mapFunction)
   }
 
+  logger.info("Classifying raster by elevation")
   val binFn = classifyBinary(maxElevation = maxElev)(_,_,_)
   val classGeo = geoTiff.mapTile(mapOverTilePixels(binFn)(_))
 
   def floodFillTile(xStart: Int, yStart: Int)(tileIn: Tile): Tile = {
     val fillObj = new FloodFill(tileIn.mutable)
     Utils.timems {
-      fillObj.fill(xStart, yStart) // 56s for full globe
+      // 56s for full globe
+      // 213s with wrap-around support
+      fillObj.fill(xStart, yStart)
     }
     fillObj.tileToFill
   }
+
+  logger.info("Performing flood fill")
   val filled = classGeo.mapTile(floodFillTile(xStart = xStart, yStart = yStart)(_))
 
+  logger.info("Writing processed raster to disk")
   GeoTiffWriter.write(filled, imageOut.toString)
 
 }
