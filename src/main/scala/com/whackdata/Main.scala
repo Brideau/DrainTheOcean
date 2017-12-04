@@ -8,10 +8,12 @@ import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.rogach.scallop.ScallopConf
 import org.slf4j.LoggerFactory
+import scala.math.round
 
 // Parse input parameters
 class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
-  val image = opt[String]()
+  val elevRaster = opt[String]()
+  val waterRaster = opt[String]()
   val x = opt[Int]()
   val y = opt[Int]()
   val elev = opt[Int]()
@@ -22,7 +24,7 @@ object Main extends App {
 
   val logger = LoggerFactory.getLogger("MainLogger")
 
-  def classifyBinary(maxElevation: Int)(x: Int, y: Int, elevation: Int): Int = {
+  def classifyByElevation(maxElevation: Int)(x: Int, y: Int, elevation: Int): Int = {
     if (elevation > maxElevation) 0 else 1
   }
   def mapOverTilePixels(mapFunction: (Int, Int, Int) => Int)(tileIn: Tile): Tile = {
@@ -37,29 +39,62 @@ object Main extends App {
     fillObj.tileToFill
   }
 
+  case class ProcessedLayer(waterRaster: SinglebandGeoTiff,
+                            elevMask: SinglebandGeoTiff,
+                            floodFillMask: SinglebandGeoTiff)
+  object LastProcessedLayerStore {
+    var layer: ProcessedLayer = _
+  }
+
   val conf = new ParseArgs(args)
-  val imagePath = Paths.get(conf.image())
+  val elevRasterPath = Paths.get(conf.elevRaster())
+  val waterRasterPath = Paths.get(conf.waterRaster())
 
   val xStart = conf.x()
   val yStart = conf.y()
   val elevStart = conf.elev()
 
-  logger.info("Reading in GeoTiff")
-  val geoTiff: SinglebandGeoTiff = GeoTiffReader.readSingleband(
-    imagePath.toString,
-    decompress = false,
+  // Ensures that whatever number you start at, it gets snapped to
+  // increments of 100 after
+  val nextElev = round(elevStart.toDouble / 100.0) * 100.0 - 100.0
+  val elevRange = List(elevStart, nextElev)
+  // val elevRange = elevStart :: (nextElev to (nextElev - 100) by -100).toList
+
+  // Read in the elevation raster. This will stick around for the duration
+  // of the program as it is required throughout.
+  logger.info("Reading in Elevation Raster")
+  val elevRaster: SinglebandGeoTiff = GeoTiffReader.readSingleband(
+    elevRasterPath.toString,
+    decompress = true,
     streaming = false
   )
 
-  logger.info("Classifying raster by elevation")
-  val binFn = classifyBinary(maxElevation = elevStart)(_,_,_)
-  val classGeo = geoTiff.mapTile(mapOverTilePixels(binFn)(_))
+  for (elev <- elevRange) {
 
-  logger.info("Performing flood fill")
-  val filled = classGeo.mapTile(floodFillTile(xStart = xStart, yStart = yStart)(_))
+    logger.info("Classifying raster by elevation")
+    val binFn = classifyByElevation(maxElevation = elevStart)(_, _, _)
+    val elevMask = elevRaster.mapTile(mapOverTilePixels(binFn)(_))
 
-  logger.info("Writing processed raster to disk")
-  val imageOut = Utils.getOutputPath(imagePath, elevStart)
-  GeoTiffWriter.write(filled, imageOut.toString)
+    logger.info("Performing flood fill")
+    val filled = elevMask.mapTile(floodFillTile(xStart = xStart, yStart = yStart)(_))
+
+    // For the first layer, seed the existing water from the original water raster.
+    // For all others, use the previous layer's water raster, as it represents the
+    // most recent state
+    val waterRaster: SinglebandGeoTiff =  if (elev == elevStart) {
+      GeoTiffReader.readSingleband(
+        waterRasterPath.toString,
+        decompress = true,
+        streaming = false
+      )
+    } else {
+      LastProcessedLayerStore.layer.waterRaster // FIX
+    }
+
+    // You'll need to store things on disk to allow for easy restart.
+    // logger.info("Writing processed raster to disk")
+    // val imageOut = Utils.getOutputPath(imagePath, elevStart)
+    // GeoTiffWriter.write(filled, imageOut.toString)
+  }
 
 }
