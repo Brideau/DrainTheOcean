@@ -4,12 +4,14 @@ import java.nio.file.Path
 
 object Utils {
 
-  def getOutputPath(inputPath: Path): Path = {
+  def getOutputPath(inputPath: Path, elevation: Int): Path = {
     val inFileName = inputPath.getFileName.toString
     val inDirectory = inputPath.getParent
 
+    val paddedElev = "%06d".format(elevation)
+
     val (baseName, ext) = inFileName.splitAt(inFileName.lastIndexOf('.'))
-    val outName = baseName + "Processed" + ext
+    val outName = baseName + "Processed_" + paddedElev + ext
     inDirectory.resolve(outName)
   }
 
