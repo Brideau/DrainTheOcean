@@ -84,18 +84,23 @@ object Drain {
     val elevLoopStart: Int = if (alreadyProcessed.nonEmpty) {
       val deepestProcessed = alreadyProcessed.minBy(_.elev)
       val elev = deepestProcessed.elev
+      logger.info(s"Restarting where processing left off last time @ elevation $elev")
+
       // The only type of processed layer that requires carrying state forward
       // is the water raster, so we'll just load that from disk and re-process
       // the other ones. We end up repeating this code below, but it doesn't
       // really matter since it's only repeated once.
 
+      logger.info("Re-classifyig the elevation of the last layer")
       val binFn = classifyByElevation(maxElevation = elev)(_,_,_)
       val elevMask = elevRaster.tile.map(binFn)
       val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
 
+      logger.info("Re-flood-filling the elevation")
       val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
       val filledGeoTiff = elevRaster.copy(tile = filled)
 
+      logger.info("Loading the last calculated water raster")
       val waterRasterGeoTiff = GeoTiffReader.readSingleband(
         deepestProcessed.path.toString,
         decompress = false,
@@ -119,19 +124,10 @@ object Drain {
       val elevMask = elevRaster.tile.map(binFn)
       val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
 
-      logger.info("Writing elevation mask raster to disk")
-      val elevOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "ElevMask", elev)
-      GeoTiffWriter.write(elevMaskGeoTiff, elevOutPath.toString)
-
       logger.info(s"Performing flood fill @ elevation = $elev")
       // ~37s for entire world
       val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
       val filledGeoTiff = elevRaster.copy(tile = filled)
-
-      // Write things to disk to allow for easy restart if the program fails
-      logger.info(s"Writing flood filled raster to disk")
-      val fillOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Fill", elev)
-      GeoTiffWriter.write(filledGeoTiff, fillOutPath.toString)
 
       // For the first layer, seed the existing water from the original water raster.
       // For all others, use the previous layer's water raster, as it represents the
