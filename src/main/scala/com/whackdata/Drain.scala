@@ -61,7 +61,7 @@ object Drain {
 
     for (elev <- elevRange) {
 
-      logger.info("Classifying raster by elevation")
+      logger.info(s"Classifying raster by elevation @ elevation = $elev")
       val binFn = classifyByElevation(maxElevation = elev)(_,_,_)
       val elevMask = elevRaster.tile.map(binFn)
       val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
@@ -70,13 +70,13 @@ object Drain {
       val elevOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "ElevMask", elev)
       GeoTiffWriter.write(elevMaskGeoTiff, elevOutPath.toString)
 
-      logger.info("Performing flood fill")
+      logger.info(s"Performing flood fill @ elevation = $elev")
       // ~37s for entire world
       val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
       val filledGeoTiff = elevRaster.copy(tile = filled)
 
       // Write things to disk to allow for easy restart if the program fails
-      logger.info("Writing flood filled raster to disk")
+      logger.info(s"Writing flood filled raster to disk")
       val fillOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Fill", elev)
       GeoTiffWriter.write(filledGeoTiff, fillOutPath.toString)
 
@@ -91,6 +91,7 @@ object Drain {
           streaming = false
         )
       } else {
+        logger.info(s"Processing water raster @ elevation = $elev")
         val lastWater = LastProcessed.layer.waterRaster
         val lastFloodFill = LastProcessed.layer.floodFillMask
         val currElevMask = elevMaskGeoTiff.tile
