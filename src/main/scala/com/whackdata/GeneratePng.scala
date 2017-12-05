@@ -2,8 +2,12 @@ package com.whackdata
 
 import java.nio.file.Paths
 
+import geotrellis.proj4.{LatLng, WebMercator}
+import geotrellis.raster.{GridBounds, Raster}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import geotrellis.raster.render.{ColorRamp, ColorRamps, RGB}
+import geotrellis.raster.render.{ColorRamp, RGB}
+import geotrellis.raster.reproject.Reproject
+import geotrellis.vector.Extent
 import org.slf4j.LoggerFactory
 
 object GeneratePng {
@@ -40,13 +44,24 @@ object GeneratePng {
     logger.info("Resizing base layer to 1920x960")
     val smallTile = baseGeoTiff.tile.resample(1920, 960)
 
+    logger.info("Reprojecting the raster")
+    val tile = smallTile
+    val ext = Extent(-180, -90, 180, 90)
+    val raster = Raster(tile, ext)
+    val projRaster = raster.reproject(
+      geotrellis.proj4.CRS.fromString("+proj=eqc"),
+      geotrellis.proj4.CRS.fromString("+proj=robin")
+    )
+
     logger.info("Colouring the raster")
-    // val colourRamp = ColorRamps.ClassificationBoldLandUse
-    val colourRamp = ColorRamp(RGB(120, 66, 0), RGB(255, 255, 255))
     val (min, max) = baseGeoTiff.tile.findMinMax
     val diff = max - min
-    val breaks = (max to min).by(diff / -100).toArray
-    val colouredTile = smallTile.color(colourRamp.stops(100).toColorMap(breaks))
+    val nearMax = max - diff * 0.1
+    val nearMin = min + diff * 0.1
+
+    val colourRamp = ColorRamp(RGB(120, 66, 0), RGB(255, 255, 255))
+    val breaks = (nearMax to nearMin).by(diff / -100).toArray
+    val colouredTile = projRaster.tile.color(colourRamp.stops(100).toColorMap(breaks))
 
     logger.info("Rendering base layer PNG")
     val smallPng = colouredTile.renderPng()
