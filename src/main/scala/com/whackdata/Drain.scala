@@ -35,7 +35,7 @@ object Drain {
 
   def simDrain(conf: ParseArgs): Unit = {
     val elevRasterPath = Paths.get(conf.elev_raster())
-    val waterRasterPath = Paths.get(conf.water_raster())
+    // val waterRasterPath = Paths.get(conf.water_raster())
 
     val xStart = conf.x()
     val yStart = conf.y()
