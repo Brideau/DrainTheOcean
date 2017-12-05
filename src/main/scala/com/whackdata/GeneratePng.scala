@@ -37,16 +37,17 @@ object GeneratePng {
       streaming = false
     )
 
+    logger.info("Resizing base layer to 1920x960")
+    val smallTile = baseGeoTiff.tile.resample(1920, 960)
+
+    logger.info("Colouring the raster")
     val colourRamp = ColorRamps.ClassificationMutedTerrain
     val (min, max) = baseGeoTiff.tile.findMinMax
-    val breaks = (max to min).by(-18).toArray
-    val colouredTile = baseGeoTiff.tile.color(colourRamp.stops(100).toColorMap(breaks))
-
-    logger.info("Resizing base layer to 1920x960")
-    val smallTile = colouredTile.resample(1920, 960)
+    val breaks = (max to min).by(-180).toArray
+    val colouredTile = smallTile.color(colourRamp.stops(100).toColorMap(breaks))
 
     logger.info("Rendering base layer PNG")
-    val smallPng = smallTile.renderPng()
+    val smallPng = colouredTile.renderPng()
 
     logger.info("Writing out base layer PNG")
     val outputPath = Utils.getOutputPath(inputPath, outputDir, "PNG", 0)
