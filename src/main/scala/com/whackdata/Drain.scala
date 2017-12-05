@@ -25,12 +25,7 @@ object Drain {
     if (elevation > maxElevation) 0 else 1
   }
 
-  // TODO: Simplify all of this by using more straght-forward IO
-  def mapOverTilePixels(mapFunction: (Int, Int, Int) => Int)(tileIn: Tile): Tile = {
-    tileIn.map(mapFunction)
-  }
-
-  def floodFillTile(xStart: Int, yStart: Int)(tileIn: Tile): Tile = {
+  def floodFillTile(xStart: Int, yStart: Int, tileIn: Tile): Tile = {
     val fillObj = new FloodFill(tileIn.mutable)
     // 56s for full globe
     // 213s with wrap-around support
@@ -65,10 +60,11 @@ object Drain {
 
       logger.info("Classifying raster by elevation")
       val binFn = classifyByElevation(maxElevation = elev)(_, _, _)
-      val elevMask = elevRaster.mapTile(mapOverTilePixels(binFn)(_))
+      val elevMask = elevRaster.tile.map(binFn)
 
       logger.info("Performing flood fill")
-      val filled = elevMask.mapTile(floodFillTile(xStart = xStart, yStart = yStart)(_))
+      val filled = floodFillTile(xStart, yStart, elevMask)
+      val filledGeoTiff = elevRaster.copy(tile = filled)
 
       // For the first layer, seed the existing water from the original water raster.
       // For all others, use the previous layer's water raster, as it represents the
@@ -86,7 +82,7 @@ object Drain {
       // You'll need to store things on disk to allow for easy restart.
       // logger.info("Writing processed raster to disk")
        val imageOut = Utils.getOutputPath(elevRasterPath, elevStart)
-       GeoTiffWriter.write(filled, imageOut.toString)
+       GeoTiffWriter.write(filledGeoTiff, imageOut.toString)
     }
   }
 
