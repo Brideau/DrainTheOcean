@@ -79,29 +79,33 @@ object GeneratePng {
     val outPath = Paths.get(conf.output_path())
     val waterLayers = getAlreadyProcessed(outPath, "Water", "tif")
 
-    for (layer <- waterLayers) {
-      logger.info(s"Loading water layer @ elevation ${layer.elev}")
-      val waterRaster = GeoTiffReader.readSingleband(
-        layer.path.toString,
-        decompress = false,
-        streaming = false
-      )
+    Utils.timems {
+      def createPng(layer: ProcessedFile): Unit = {
+        logger.info(s"Loading water layer @ elevation ${layer.elev}")
+        val waterRaster = GeoTiffReader.readSingleband(
+          layer.path.toString,
+          decompress = false,
+          streaming = false
+        )
 
-      val smallTile = resize(waterRaster)
-      val projRaster = reproject(smallTile)
+        val smallTile = resize(waterRaster)
+        val projRaster = reproject(smallTile)
 
-      val colourRamp = ColorRamp(RGB(0, 33, 143), RGB(0, 33, 143))
-      val breaks = Array(0, 4)
-      val colouredTile = projRaster.tile.color(colourRamp.toColorMap(breaks))
+        val colourRamp = ColorRamp(RGB(0, 33, 143), RGB(0, 33, 143))
+        val breaks = Array(0, 4)
+        val colouredTile = projRaster.tile.color(colourRamp.toColorMap(breaks))
 
-      logger.info("Rendering water layer PNG")
-      val smallPng = colouredTile.renderPng()
+        logger.info("Rendering water layer PNG")
+        val smallPng = colouredTile.renderPng()
 
-      logger.info("Writing out water layer PNG")
-      val outputPath = Utils
-        .getOutputPath(layer.path, outPath, "PNG", layer.elev)
-        .toString.replace(".tif", ".png")
-      smallPng.write(outputPath)
+        logger.info("Writing out water layer PNG")
+        val outputPath = Utils
+          .getOutputPath(layer.path, outPath, "PNG", layer.elev)
+          .toString.replace(".tif", ".png")
+        smallPng.write(outputPath)
+      }
+
+      waterLayers.toParArray.map(createPng)
 
     }
 
