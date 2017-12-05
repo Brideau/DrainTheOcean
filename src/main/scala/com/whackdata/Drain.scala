@@ -24,8 +24,6 @@ object Drain {
 
   def floodFillTile(xStart: Int, yStart: Int, tileIn: Tile): Tile = {
     val fillObj = new FloodFill(tileIn.mutable)
-    // 56s for full globe
-    // 213s with wrap-around support
     fillObj.fill(xStart, yStart)
     fillObj.tileToFill
   }
@@ -51,7 +49,7 @@ object Drain {
     logger.info("Reading in Elevation Raster")
     val elevRaster: SinglebandGeoTiff = GeoTiffReader.readSingleband(
       elevRasterPath.toString,
-      decompress = true,
+      decompress = false,
       streaming = false
     )
 
@@ -66,14 +64,24 @@ object Drain {
       val elevMask = elevRaster.tile.map(binFn)
       val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
 
+      logger.info("Writing elevation mask raster to disk")
+      val elevOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "ElevMask", elev)
+      GeoTiffWriter.write(elevMaskGeoTiff, elevOutPath.toString)
+
       logger.info("Performing flood fill")
+      // ~37s for entire world
       val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
       val filledGeoTiff = elevRaster.copy(tile = filled)
+
+      // Write things to disk to allow for easy restart if the program fails
+      logger.info("Writing flood filled raster to disk")
+      val fillOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Fill", elev)
+      GeoTiffWriter.write(filledGeoTiff, fillOutPath.toString)
 
       // For the first layer, seed the existing water from the original water raster.
       // For all others, use the previous layer's water raster, as it represents the
       // most recent state
-      val waterRaster: SinglebandGeoTiff = if (elev == elevStart) {
+      val waterRasterGeoTiff: SinglebandGeoTiff = if (elev == elevStart) {
         logger.info("Loading initial water raster")
         GeoTiffReader.readSingleband(
           waterRasterPath.toString,
@@ -81,20 +89,19 @@ object Drain {
           streaming = false
         )
       } else {
+        // TODO: Insert water calculations
         LastProcessedLayerStore.layer.waterRaster
       }
 
-      // TODO: Insert water calculations
-
       // Create an object from each of the processed components and store it so that
       // we can use it for calculations during the next iteration
-      val processedLayer = ProcessedLayer(waterRaster, elevMaskGeoTiff, filledGeoTiff)
+      val processedLayer = ProcessedLayer(waterRasterGeoTiff, elevMaskGeoTiff, filledGeoTiff)
       LastProcessedLayerStore.layer = processedLayer
 
-      // You'll need to store things on disk to allow for easy restart.
-      // logger.info("Writing processed raster to disk")
-      val fillOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Fill", elev)
-      GeoTiffWriter.write(filledGeoTiff, fillOutPath.toString)
+      logger.info("Writing water raster to disk")
+      val waterOutPath = Utils.getOutputPath(waterRasterPath, outputPath, "Water", elev)
+      // TODO: Fix once water has been calculated properly
+      GeoTiffWriter.write(waterRasterGeoTiff, waterOutPath.toString)
     }
   }
 

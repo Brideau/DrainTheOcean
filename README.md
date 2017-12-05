@@ -4,7 +4,7 @@
 
 ### Simulate Draining
 
-sbt "run --job simDrain --elev_raster /Users/B/Documents/Projects/DrainOcean/Samples/ETOP_EastCoast2.tif --x 1900 --y 1250 --elev 0"
+sbt "run --job simDrain --elev_raster /Users/B/Documents/Projects/DrainOcean/ETOP/ETOP_Cleaned.tif --water_raster /Users/B/Documents/Projects/DrainOcean/Output/MergedWater/OceansLakesProcessed_000000.tif --x 19400 --y 4300 --elev 0 --output_path /Users/B/Documents/Projects/DrainOcean/Output"
 
 
 ### Combine Water
