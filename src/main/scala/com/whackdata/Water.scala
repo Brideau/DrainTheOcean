@@ -14,7 +14,7 @@ object Water {
   private def getWaterRaster(path: Path): SinglebandGeoTiff = {
     GeoTiffReader.readSingleband(
       path.toString,
-      decompress = true,
+      decompress = false,
       streaming = false
     )
   }

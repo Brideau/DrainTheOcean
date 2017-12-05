@@ -22,5 +22,5 @@ initialize := {
   val current  = sys.props("java.specification.version")
   assert(current == required, s"Unsupported JDK: java.specification.version $current != $required")
 }
-javaOptions in run += "-Xmx4G"
-javaOptions in run += "-Xms4G"
+javaOptions in run += "-Xmx8G"
+javaOptions in run += "-Xms8G"
