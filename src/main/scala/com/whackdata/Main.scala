@@ -1,6 +1,5 @@
 package com.whackdata
 
-import geotrellis.raster.io.geotiff._
 import org.rogach.scallop.ScallopConf
 import org.slf4j.LoggerFactory
 
@@ -14,6 +13,7 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
   val elev = opt[Int]()
   val water_a = opt[String]()
   val water_b = opt[String]()
+  val output_path = opt[String]()
   verify()
 }
 

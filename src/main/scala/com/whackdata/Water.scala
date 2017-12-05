@@ -24,6 +24,8 @@ object Water {
     val waterA = Paths.get(conf.water_a())
     val waterB = Paths.get(conf.water_b())
 
+    val outputPath = Paths.get(conf.output_path())
+
     val elevation = conf.elev()
 
     logger.info("Loading Raster A")
@@ -38,7 +40,7 @@ object Water {
     val waterRasterC = waterRasterA.copy(tile = combinedWater)
 
     logger.info("Writing result to disk")
-    val outPath = Utils.getOutputPath(waterA, elevation)
+    val outPath = Utils.getOutputPath(waterA, outputPath, "MergedWater", elevation)
     GeoTiffWriter.write(waterRasterC, outPath.toString)
   }
 
