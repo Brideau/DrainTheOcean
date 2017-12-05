@@ -14,6 +14,8 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
   val water_a = opt[String]()
   val water_b = opt[String]()
   val output_path = opt[String]()
+  val base_raster = opt[String](default = Some("None"))
+  val water_dir = opt[String](default = Some("None"))
   verify()
 }
 
@@ -31,6 +33,9 @@ object Main extends App {
     case "combineWater" =>
       logger.info("Starting water combining process")
       Water.merge(conf)
+    case "generatePng" =>
+      logger.info("Start PNG generation")
+      GeneratePng.run(conf)
   }
 
 }
