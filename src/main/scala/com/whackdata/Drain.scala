@@ -37,8 +37,8 @@ object Drain {
   }
 
   def simDrain(conf: ParseArgs): Unit = {
-    val elevRasterPath = Paths.get(conf.elevraster())
-    // val waterRasterPath = Paths.get(conf.waterRaster())
+    val elevRasterPath = Paths.get(conf.elev_raster())
+    val waterRasterPath = Paths.get(conf.water_raster())
 
     val xStart = conf.x()
     val yStart = conf.y()
@@ -46,9 +46,8 @@ object Drain {
 
     // Ensures that whatever number you start at, it gets snapped to
     // increments of 100 after
-    val nextElev = round(elevStart.toDouble / 100.0) * 100.0 - 100.0
-    val elevRange = List(elevStart)
-    //val elevRange = List(elevStart, nextElev)
+    val nextElev = (round(elevStart.toDouble / 100.0) * 100 - 100).toInt
+    val elevRange: List[Int] = List(elevStart, nextElev)
     // val elevRange = elevStart :: (nextElev to (nextElev - 100) by -100).toList
 
     // Read in the elevation raster. This will stick around for the duration
@@ -63,7 +62,7 @@ object Drain {
     for (elev <- elevRange) {
 
       logger.info("Classifying raster by elevation")
-      val binFn = classifyByElevation(maxElevation = elevStart)(_, _, _)
+      val binFn = classifyByElevation(maxElevation = elev)(_, _, _)
       val elevMask = elevRaster.mapTile(mapOverTilePixels(binFn)(_))
 
       logger.info("Performing flood fill")
