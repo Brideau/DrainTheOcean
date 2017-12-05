@@ -24,6 +24,8 @@ object Drain {
   def classifyByElevation(maxElevation: Int)(x: Int, y: Int, elevation: Int): Int = {
     if (elevation > maxElevation) 0 else 1
   }
+
+  // TODO: Simplify all of this by using more straght-forward IO
   def mapOverTilePixels(mapFunction: (Int, Int, Int) => Int)(tileIn: Tile): Tile = {
     tileIn.map(mapFunction)
   }
