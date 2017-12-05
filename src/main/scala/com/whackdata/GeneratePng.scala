@@ -3,7 +3,7 @@ package com.whackdata
 import java.nio.file.Paths
 
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import geotrellis.raster.render.ColorRamps
+import geotrellis.raster.render.{ColorRamp, ColorRamps, RGB}
 import org.slf4j.LoggerFactory
 
 object GeneratePng {
@@ -41,9 +41,11 @@ object GeneratePng {
     val smallTile = baseGeoTiff.tile.resample(1920, 960)
 
     logger.info("Colouring the raster")
-    val colourRamp = ColorRamps.ClassificationMutedTerrain
+    // val colourRamp = ColorRamps.ClassificationBoldLandUse
+    val colourRamp = ColorRamp(RGB(120, 66, 0), RGB(255, 255, 255))
     val (min, max) = baseGeoTiff.tile.findMinMax
-    val breaks = (max to min).by(-180).toArray
+    val diff = max - min
+    val breaks = (max to min).by(diff / -100).toArray
     val colouredTile = smallTile.color(colourRamp.stops(100).toColorMap(breaks))
 
     logger.info("Rendering base layer PNG")
