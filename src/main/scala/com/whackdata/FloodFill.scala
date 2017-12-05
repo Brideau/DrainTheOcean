@@ -6,6 +6,7 @@ import scala.util.Try
 
 // Based on the flood fill algorithm by Lode Vandevenne:
 // http://lodev.org/cgtutor/floodfill.html#8-Way_Method_With_Stack
+
 // Modified to support wrap-around at the left and right edges
 // to support geographic flood fills. Expects a mutable raster
 // tile that has already been classified into areas with elevation
@@ -16,15 +17,9 @@ class FloodFill(val tileToFill: MutableArrayTile,
                 val reachableValue: Int = 1,
                 val colorValue: Int = 2) {
 
-  // A simple class for storing seed pixels that are used to check
-  // a section of a line that require painting
-  private class  Pixel(val x: Int, val y: Int)
-  private object Pixel {
-    def apply(x: Int, y: Int) = new Pixel(x, y)
-  }
-
-  // The stack that stores yet-to-be-checked seed pixels
-  private var rowStack = List[Pixel]()
+  // The stack that stores yet-to-be-checked seed pixels in the
+  // form of Array(x, y)
+  private var rowStack = List[Array[Int]]()
 
   // Checks if a pixel represents a "barrier" point (elevation too high),
   // an "reachable" point (elevation at or below current threshold) or
@@ -47,7 +42,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
     if (needsPainting(x, y).getOrElse(false)) {
 
       // Add the starting pixel to the stack
-      rowStack = Pixel(x, y) :: rowStack
+      rowStack = Array(x, y) :: rowStack
 
       val tileWidth = tileToFill.cols
       val tileHeight = tileToFill.rows
@@ -59,13 +54,13 @@ class FloodFill(val tileToFill: MutableArrayTile,
         val currPixel = rowStack.head
         rowStack = rowStack.tail
 
-        var currX = currPixel.x
-        val y = currPixel.y
+        var currX = currPixel(0)
+        val y = currPixel(1)
 
         // Find the left-most point in the row that requires painting
         while (
           needsPainting(wrap(currX), y).getOrElse(false) &&
-          currPixel.x - currX != tileWidth
+          currPixel(0) - currX != tileWidth
         ) currX -= 1
         currX =  wrap(currX + 1)
 
@@ -83,7 +78,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
           if (!spanAbove && needsPainting(currX, y - 1).getOrElse(false)) {
             // Add the pixel to the stack and set a flag saying that you've
             // check the row above
-            rowStack = Pixel(currX, y - 1) :: rowStack
+            rowStack = Array(currX, y - 1) :: rowStack
             spanAbove = true
             // Once you come across a barrier in the above row, reset the spanAbove
             // flag since it represents a discontinuity in the line above
@@ -93,7 +88,7 @@ class FloodFill(val tileToFill: MutableArrayTile,
 
           // Same as above, but checks the pixels below the current line
           if (!spanBelow && needsPainting(currX, y + 1).getOrElse(false)) {
-            rowStack = Pixel(currX, y + 1) :: rowStack
+            rowStack = Array(currX, y + 1) :: rowStack
           } else if (spanBelow && y < tileHeight && !needsPainting(currX, y + 1).getOrElse(false)) {
             spanBelow = false
           }
