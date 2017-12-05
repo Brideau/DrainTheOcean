@@ -8,6 +8,8 @@ import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
 
+import Constants.noData
+
 import scala.math.round
 
 object Drain {
@@ -41,7 +43,7 @@ object Drain {
     // Ensures that whatever number you start at, it gets snapped to
     // increments of 100 after
     val nextElev = (round(elevStart.toDouble / 100.0) * 100 - 100).toInt
-    val elevRange: List[Int] = List(elevStart)
+    val elevRange: List[Int] = List(elevStart, nextElev)
     // val elevRange = elevStart :: (nextElev to (nextElev - 100) by -100).toList
 
     // Read in the elevation raster. This will stick around for the duration
@@ -53,7 +55,7 @@ object Drain {
       streaming = false
     )
 
-    object LastProcessedLayerStore {
+    object LastProcessed {
       var layer: ProcessedLayer = _
     }
 
@@ -89,19 +91,39 @@ object Drain {
           streaming = false
         )
       } else {
-        // TODO: Insert water calculations
-        LastProcessedLayerStore.layer.waterRaster
+        val lastWater = LastProcessed.layer.waterRaster
+        val lastFloodFill = LastProcessed.layer.floodFillMask
+        val currElevMask = elevMaskGeoTiff.tile
+
+        // The water from the last step, with the current land now
+        // above the water removed
+        val waterA = lastWater.tile.combine(currElevMask) { (lw, ce) =>
+          if (ce == 0) noData else lw
+        }
+
+        // The water from the last step, with the parts that were accessible
+        // last time removed
+        val waterB = lastWater.tile.combine(lastFloodFill.tile) { (lw, lf) =>
+          if (lf == 2) noData else lw
+        }
+
+        // Merge these two components together
+        val waterCurrent = waterA.combine(waterB) {(a, b) =>
+          if (a == 2 || b == 2) 2 else noData
+        }
+
+        lastWater.copy(tile = waterCurrent)
       }
+
+      logger.info("Writing water raster to disk")
+      val waterOutPath = Utils.getOutputPath(waterRasterPath, outputPath, "Water", elev)
+      GeoTiffWriter.write(waterRasterGeoTiff, waterOutPath.toString)
 
       // Create an object from each of the processed components and store it so that
       // we can use it for calculations during the next iteration
       val processedLayer = ProcessedLayer(waterRasterGeoTiff, elevMaskGeoTiff, filledGeoTiff)
-      LastProcessedLayerStore.layer = processedLayer
+      LastProcessed.layer = processedLayer
 
-      logger.info("Writing water raster to disk")
-      val waterOutPath = Utils.getOutputPath(waterRasterPath, outputPath, "Water", elev)
-      // TODO: Fix once water has been calculated properly
-      GeoTiffWriter.write(waterRasterGeoTiff, waterOutPath.toString)
     }
   }
 

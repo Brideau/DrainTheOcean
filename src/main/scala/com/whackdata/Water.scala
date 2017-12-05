@@ -2,6 +2,7 @@ package com.whackdata
 
 import java.nio.file.{Path, Paths}
 
+import Constants.noData
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
@@ -35,7 +36,7 @@ object Water {
 
     logger.info("Combining both rasters")
     val combinedWater = waterRasterA.tile.combine(waterRasterB.tile) { (a, b) =>
-      if (a == 2 || b == 2) 2 else -32768
+      if (a == 2 || b == 2) 2 else noData
     }
     val waterRasterC = waterRasterA.copy(tile = combinedWater)
 
