@@ -15,7 +15,6 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
   val water_b = opt[String]()
   val output_path = opt[String]()
   val base_raster = opt[String](default = Some("None"))
-  val water_dir = opt[String](default = Some("None"))
   verify()
 }
 

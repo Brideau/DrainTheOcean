@@ -1,6 +1,7 @@
 package com.whackdata
 
 import java.nio.file.{Files, Path}
+import scala.collection.JavaConverters._
 
 object Utils {
 
@@ -15,6 +16,31 @@ object Utils {
     val (baseName, ext) = inFileName.splitAt(inFileName.lastIndexOf('.'))
     val outName = baseName + "Processed_" + paddedElev + ext
     fullOutputPath.resolve(outName)
+  }
+
+  case class ProcessedFile(elev: Int, path: Path)
+
+  def getAlreadyProcessed(outputPath: Path): List[ProcessedFile] = {
+    // Get the paths of the water files already processed
+    val existingFileList = Files.newDirectoryStream(outputPath.resolve("Water"))
+    // Convert stream to a Scala vector
+    val fileList = existingFileList.iterator().asScala.toList
+
+    // Filter out any files that aren't tifs
+    val filePaths = fileList
+      .filter(_.toString.split('.').last == "tif")
+
+    // Extract the elevation from the filename
+    val fileElev = filePaths
+      .map(_.getFileName)
+      .map(_.toString)
+      .map(fn => fn.splitAt(fn.lastIndexOf('_'))._2)
+      .map(_.replaceAll("_", "").replaceAll(".tif", ""))
+      .map(_.toInt)
+
+    fileElev
+      .zip(filePaths)
+      .map(tup => ProcessedFile(tup._1, tup._2))
   }
 
   def timems[R](block: => R): R = {

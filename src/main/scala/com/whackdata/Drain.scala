@@ -1,6 +1,6 @@
 package com.whackdata
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Paths
 
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
@@ -9,8 +9,7 @@ import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
 import Constants.noData
 
-import scala.math.round
-import scala.collection.JavaConverters._
+import Utils.getAlreadyProcessed
 
 object Drain {
 
@@ -28,31 +27,6 @@ object Drain {
     val fillObj = new FloodFill(tileIn.mutable)
     fillObj.fill(xStart, yStart)
     fillObj.tileToFill
-  }
-
-  case class ProcessedFile(elev: Int, path: Path)
-
-  def getAlreadyProcessed(outputPath: Path): List[ProcessedFile] = {
-    // Get the paths of the water files already processed
-    val existingFileList = Files.newDirectoryStream(outputPath.resolve("Water"))
-    // Convert stream to a Scala vector
-    val fileList = existingFileList.iterator().asScala.toList
-
-    // Filter out any files that aren't tifs
-    val filePaths = fileList
-      .filter(_.toString.split('.').last == "tif")
-
-    // Extract the elevation from the filename
-    val fileElev = filePaths
-      .map(_.getFileName)
-      .map(_.toString)
-      .map(fn => fn.splitAt(fn.lastIndexOf('_'))._2)
-      .map(_.replaceAll("_", "").replaceAll(".tif", ""))
-      .map(_.toInt)
-
-    fileElev
-      .zip(filePaths)
-      .map(tup => ProcessedFile(tup._1, tup._2))
   }
 
   def simDrain(conf: ParseArgs): Unit = {

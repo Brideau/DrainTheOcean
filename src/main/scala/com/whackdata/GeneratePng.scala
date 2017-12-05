@@ -1,14 +1,16 @@
 package com.whackdata
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 
-import geotrellis.proj4.{LatLng, WebMercator}
-import geotrellis.raster.{GridBounds, Raster}
+import geotrellis.raster.io.geotiff.SinglebandGeoTiff
+import geotrellis.raster.{Raster, SinglebandRaster, Tile}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.render.{ColorRamp, RGB}
-import geotrellis.raster.reproject.Reproject
 import geotrellis.vector.Extent
 import org.slf4j.LoggerFactory
+import Utils._
+
+import scala.collection.JavaConverters._
 
 object GeneratePng {
 
@@ -16,21 +18,30 @@ object GeneratePng {
 
   def run(conf: ParseArgs): Unit = {
     val baseRaster = conf.base_raster()
-    val water = conf.water_dir()
 
     baseRaster match {
-      case "None" =>
+      case "None" => generateWaterLayers(conf)
       case _ => generateBaseLayer(conf)
-    }
-
-    water match {
-      case "None" =>
-      case _ => generateWaterLayers(conf)
     }
 
   }
 
-  def generateBaseLayer(conf: ParseArgs): Unit = {
+  private def reproject(tile: Tile): SinglebandRaster = {
+    logger.info("Reprojecting the raster")
+    val ext = Extent(-180, -90, 180, 90)
+    val raster = Raster(tile, ext)
+    raster.reproject(
+      geotrellis.proj4.CRS.fromString("+proj=eqc"),
+      geotrellis.proj4.CRS.fromString("+proj=robin")
+    )
+  }
+
+  private def resize(geoTiff: SinglebandGeoTiff): Tile = {
+    logger.info("Resizing layer to 1920x960")
+    geoTiff.tile.resample(1920, 960)
+  }
+
+  private def generateBaseLayer(conf: ParseArgs): Unit = {
     val inputPath = Paths.get(conf.base_raster())
     val outputDir = Paths.get(conf.output_path())
 
@@ -41,17 +52,8 @@ object GeneratePng {
       streaming = false
     )
 
-    logger.info("Resizing base layer to 1920x960")
-    val smallTile = baseGeoTiff.tile.resample(1920, 960)
-
-    logger.info("Reprojecting the raster")
-    val tile = smallTile
-    val ext = Extent(-180, -90, 180, 90)
-    val raster = Raster(tile, ext)
-    val projRaster = raster.reproject(
-      geotrellis.proj4.CRS.fromString("+proj=eqc"),
-      geotrellis.proj4.CRS.fromString("+proj=robin")
-    )
+    val smallTile = resize(baseGeoTiff)
+    val projRaster = reproject(smallTile)
 
     logger.info("Colouring the raster")
     val (min, max) = baseGeoTiff.tile.findMinMax
@@ -71,7 +73,34 @@ object GeneratePng {
     smallPng.write(outputPath.toString)
   }
 
-  def generateWaterLayers(conf: ParseArgs): Unit = {
+  private def generateWaterLayers(conf: ParseArgs): Unit = {
+
+    val outPath = Paths.get(conf.output_path())
+    val waterLayers = getAlreadyProcessed(outPath)
+
+    for (layer <- waterLayers) {
+      logger.info(s"Loading water layer @ elevation ${layer.elev}")
+      val waterRaster = GeoTiffReader.readSingleband(
+        layer.path.toString,
+        decompress = false,
+        streaming = false
+      )
+
+      val smallTile = resize(waterRaster)
+      val projRaster = reproject(smallTile)
+
+      val colourRamp = ColorRamp(RGB(0, 60, 255), RGB(0, 60, 255))
+      val breaks = Array(0, 4)
+      val colouredTile = projRaster.tile.color(colourRamp.toColorMap(breaks))
+
+      logger.info("Rendering water layer PNG")
+      val smallPng = colouredTile.renderPng()
+
+      logger.info("Writing out water layer PNG")
+      val outputPath = Utils.getOutputPath(layer.path, outPath, "PNG", layer.elev)
+      smallPng.write(outputPath.toString)
+
+    }
 
   }
 
