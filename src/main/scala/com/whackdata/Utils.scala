@@ -14,28 +14,30 @@ object Utils {
     val paddedElev = "%06d".format(elevation)
 
     val (baseName, ext) = inFileName.splitAt(inFileName.lastIndexOf('.'))
-    val outName = baseName + "Processed_" + paddedElev + ext
+    val strippedBaseName = baseName.split('_')(0)
+
+    val outName = strippedBaseName + "Processed_" + paddedElev + ext
     fullOutputPath.resolve(outName)
   }
 
   case class ProcessedFile(elev: Int, path: Path)
 
-  def getAlreadyProcessed(outputPath: Path): List[ProcessedFile] = {
+  def getAlreadyProcessed(outputPath: Path, subFolder: String, fileExt: String): List[ProcessedFile] = {
     // Get the paths of the water files already processed
-    val existingFileList = Files.newDirectoryStream(outputPath.resolve("Water"))
+    val existingFileList = Files.newDirectoryStream(outputPath.resolve(subFolder))
     // Convert stream to a Scala vector
     val fileList = existingFileList.iterator().asScala.toList
 
     // Filter out any files that aren't tifs
     val filePaths = fileList
-      .filter(_.toString.split('.').last == "tif")
+      .filter(_.toString.split('.').last == fileExt)
 
     // Extract the elevation from the filename
     val fileElev = filePaths
       .map(_.getFileName)
       .map(_.toString)
       .map(fn => fn.splitAt(fn.lastIndexOf('_'))._2)
-      .map(_.replaceAll("_", "").replaceAll(".tif", ""))
+      .map(_.replaceAll("_", "").replaceAll("." + fileExt, ""))
       .map(_.toInt)
 
     fileElev

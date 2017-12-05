@@ -9,6 +9,11 @@ libraryDependencies += "org.rogach" %% "scallop" % "3.1.1"
 libraryDependencies += "org.locationtech.geotrellis" %% "geotrellis-raster" % "1.1.1"
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.25"
 
+val scrimmageVersion = "2.1.8"
+libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-core" % scrimmageVersion
+libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-io-extra" % scrimmageVersion
+libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % scrimmageVersion
+
 mainClass in assembly := Some("com.whackdata.Main")
 
 // These let you enter input in the terminal if running via SBT

@@ -32,9 +32,12 @@ object Main extends App {
     case "combineWater" =>
       logger.info("Starting water combining process")
       Water.merge(conf)
-    case "generatePng" =>
+    case "generatePngs" =>
       logger.info("Start PNG generation")
       GeneratePng.run(conf)
+    case "processPngs" =>
+      logger.info("Start PNG processing")
+      ProcessPng.run(conf)
   }
 
 }

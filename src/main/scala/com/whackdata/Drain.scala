@@ -53,7 +53,7 @@ object Drain {
     }
 
     // Start where you last finished
-    val alreadyProcessed = getAlreadyProcessed(outputPath)
+    val alreadyProcessed = getAlreadyProcessed(outputPath, "Water", "tif")
 
     val elevLoopStart: Int = if (alreadyProcessed.nonEmpty) {
       val deepestProcessed = alreadyProcessed.minBy(_.elev)

@@ -13,7 +13,10 @@ sbt "run --job combineWater --water_a /Users/B/Documents/Projects/DrainOcean/Oce
 
 ### Generate Base Layer PNG
 
-sbt "run --job generatePng --base_raster /Users/B/Documents/Projects/DrainOcean/ETOP/ETOP_Cleaned.tif --output_path /Users/B/Documents/Projects/DrainOcean/Output"
+sbt "run --job generatePngs --base_raster /Users/B/Documents/Projects/DrainOcean/ETOP/ETOP_Cleaned.tif --output_path /Users/B/Documents/Projects/DrainOcean/Output"
 
 ### Generate All Water PNGs
-sbt "run --job generatePng --output_path /Users/B/Documents/Projects/DrainOcean/Output"
+sbt "run --job generatePngs --output_path /Users/B/Documents/Projects/DrainOcean/Output"
+
+### Process All PNGs
+sbt "run --job processPngs --output_path /Users/B/Documents/Projects/DrainOcean/Output"

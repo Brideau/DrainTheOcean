@@ -1,6 +1,6 @@
 package com.whackdata
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Paths
 
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.{Raster, SinglebandRaster, Tile}
@@ -10,7 +10,6 @@ import geotrellis.vector.Extent
 import org.slf4j.LoggerFactory
 import Utils._
 
-import scala.collection.JavaConverters._
 
 object GeneratePng {
 
@@ -69,14 +68,16 @@ object GeneratePng {
     val smallPng = colouredTile.renderPng()
 
     logger.info("Writing out base layer PNG")
-    val outputPath = Utils.getOutputPath(inputPath, outputDir, "PNG", 0)
-    smallPng.write(outputPath.toString)
+    val outputPath = Utils
+      .getOutputPath(inputPath, outputDir, "PNG", 0)
+      .toString.replace(".tif", ".png")
+    smallPng.write(outputPath)
   }
 
   private def generateWaterLayers(conf: ParseArgs): Unit = {
 
     val outPath = Paths.get(conf.output_path())
-    val waterLayers = getAlreadyProcessed(outPath)
+    val waterLayers = getAlreadyProcessed(outPath, "Water", "tif")
 
     for (layer <- waterLayers) {
       logger.info(s"Loading water layer @ elevation ${layer.elev}")
@@ -97,8 +98,10 @@ object GeneratePng {
       val smallPng = colouredTile.renderPng()
 
       logger.info("Writing out water layer PNG")
-      val outputPath = Utils.getOutputPath(layer.path, outPath, "PNG", layer.elev)
-      smallPng.write(outputPath.toString)
+      val outputPath = Utils
+        .getOutputPath(layer.path, outPath, "PNG", layer.elev)
+        .toString.replace(".tif", ".png")
+      smallPng.write(outputPath)
 
     }
 
