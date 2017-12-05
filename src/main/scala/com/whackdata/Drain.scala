@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
+import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
 
 import scala.math.round
@@ -36,8 +37,8 @@ object Drain {
   }
 
   def simDrain(conf: ParseArgs): Unit = {
-    val elevRasterPath = Paths.get(conf.elevRaster())
-    val waterRasterPath = Paths.get(conf.waterRaster())
+    val elevRasterPath = Paths.get(conf.elevraster())
+    // val waterRasterPath = Paths.get(conf.waterRaster())
 
     val xStart = conf.x()
     val yStart = conf.y()
@@ -46,7 +47,8 @@ object Drain {
     // Ensures that whatever number you start at, it gets snapped to
     // increments of 100 after
     val nextElev = round(elevStart.toDouble / 100.0) * 100.0 - 100.0
-    val elevRange = List(elevStart, nextElev)
+    val elevRange = List(elevStart)
+    //val elevRange = List(elevStart, nextElev)
     // val elevRange = elevStart :: (nextElev to (nextElev - 100) by -100).toList
 
     // Read in the elevation raster. This will stick around for the duration
@@ -82,8 +84,8 @@ object Drain {
 
       // You'll need to store things on disk to allow for easy restart.
       // logger.info("Writing processed raster to disk")
-      // val imageOut = Utils.getOutputPath(imagePath, elevStart)
-      // GeoTiffWriter.write(filled, imageOut.toString)
+       val imageOut = Utils.getOutputPath(elevRasterPath, elevStart)
+       GeoTiffWriter.write(filled, imageOut.toString)
     }
   }
 

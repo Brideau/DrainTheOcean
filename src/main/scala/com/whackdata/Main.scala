@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory
 
 // Parse input parameters
 class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
-  val elevRaster = opt[String]()
-  val waterRaster = opt[String]()
+  val elevraster = opt[String]()
+  val waterraster = opt[String]()
   val x = opt[Int]()
   val y = opt[Int]()
   val elev = opt[Int]()
