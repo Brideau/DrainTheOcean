@@ -20,3 +20,6 @@ sbt "run --job generatePngs --output_path /Users/B/Documents/Projects/DrainOcean
 
 ### Process All PNGs
 sbt "run --job processPngs --output_path /Users/B/Documents/Projects/DrainOcean/Output"
+
+### Add Text to PNGs
+sbt "run --job addText --output_path /Users/B/Documents/Projects/DrainOcean/Output"

@@ -20,6 +20,8 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
 
 object Main extends App {
 
+  // TODO: Clean up naming so that they don't grow forever
+
   private val logger = LoggerFactory.getLogger("Main Logger")
 
   val conf = new ParseArgs(args)
@@ -33,11 +35,14 @@ object Main extends App {
       logger.info("Starting water combining process")
       Water.merge(conf)
     case "generatePngs" =>
-      logger.info("Start PNG generation")
+      logger.info("Starting PNG generation")
       GeneratePng.run(conf)
     case "processPngs" =>
-      logger.info("Start PNG processing")
+      logger.info("Starting PNG processing")
       ProcessPng.run(conf)
+    case "addText" =>
+      logger.info("Starting to add Text to PNGs ")
+      AddTextPng.run(conf)
     case _ =>
       logger.error("Unknown Job type")
   }
