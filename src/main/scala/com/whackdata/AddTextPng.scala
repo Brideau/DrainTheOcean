@@ -18,15 +18,13 @@ object AddTextPng {
 
     def addText(layer: ProcessedFile) = {
       logger.info(s"Adding text for elevation ${layer.elev}")
-      val text = s"Elevation ${layer.elev}"
+      val text = s"${math.abs(layer.elev)}m below current sea level"
       val image = ImageIO.read(layer.path.toFile)
 
       val graphics = image.getGraphics
-      graphics.setColor(Color.WHITE)
-      graphics.fillRect(0, 0, 200, 50)
       graphics.setColor(Color.BLACK)
-      graphics.setFont(new Font("Arial Black", Font.BOLD, 40))
-      graphics.drawString(text, 10, 25)
+      graphics.setFont(new Font("Arial", Font.BOLD, 40))
+      graphics.drawString(text, 10, 40)
 
       val outName = Utils.getOutputPath(layer.path, outputPath, "WithText", layer.elev)
       ImageIO.write(image, "png", outName.toFile)
