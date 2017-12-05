@@ -1,16 +1,16 @@
 package com.whackdata
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
-
 import Constants.noData
 
 import scala.math.round
+import scala.collection.JavaConverters._
 
 object Drain {
 
@@ -30,6 +30,31 @@ object Drain {
     fillObj.tileToFill
   }
 
+  case class ProcessedFile(elev: Int, path: Path)
+
+  def getAlreadyProcessed(outputPath: Path): List[ProcessedFile] = {
+    // Get the paths of the water files already processed
+    val existingFileList = Files.newDirectoryStream(outputPath.resolve("Water"))
+    // Convert stream to a Scala vector
+    val fileList = existingFileList.iterator().asScala.toList
+
+    // Filter out any files that aren't tifs
+    val filePaths = fileList
+      .filter(_.toString.split('.').last == "tif")
+
+    // Extract the elevation from the filename
+    val fileElev = filePaths
+      .map(_.getFileName)
+      .map(_.toString)
+      .map(fn => fn.splitAt(fn.lastIndexOf('_'))._2)
+      .map(_.replaceAll("_", "").replaceAll(".tif", ""))
+      .map(_.toInt)
+
+    fileElev
+      .zip(filePaths)
+      .map(tup => ProcessedFile(tup._1, tup._2))
+  }
+
   def simDrain(conf: ParseArgs): Unit = {
     val elevRasterPath = Paths.get(conf.elev_raster())
     val waterRasterPath = Paths.get(conf.water_raster())
@@ -39,12 +64,6 @@ object Drain {
     val xStart = conf.x()
     val yStart = conf.y()
     val elevStart = conf.elev()
-
-    // Ensures that whatever number you start at, it gets snapped to
-    // increments of 100 after
-    val nextElev = (round(elevStart.toDouble / 100.0) * 100 - 100).toInt
-    val elevRange: List[Int] = List(elevStart, nextElev)
-    // val elevRange = elevStart :: (nextElev to (nextElev - 100) by -100).toList
 
     // Read in the elevation raster. This will stick around for the duration
     // of the program as it is required throughout.
@@ -58,6 +77,40 @@ object Drain {
     object LastProcessed {
       var layer: ProcessedLayer = _
     }
+
+    // Start where you last finished
+    val alreadyProcessed = getAlreadyProcessed(outputPath)
+
+    val elevLoopStart: Int = if (alreadyProcessed.nonEmpty) {
+      val deepestProcessed = alreadyProcessed.minBy(_.elev)
+      val elev = deepestProcessed.elev
+      // The only type of processed layer that requires carrying state forward
+      // is the water raster, so we'll just load that from disk and re-process
+      // the other ones. We end up repeating this code below, but it doesn't
+      // really matter since it's only repeated once.
+
+      val binFn = classifyByElevation(maxElevation = elev)(_,_,_)
+      val elevMask = elevRaster.tile.map(binFn)
+      val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
+
+      val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
+      val filledGeoTiff = elevRaster.copy(tile = filled)
+
+      val waterRasterGeoTiff = GeoTiffReader.readSingleband(
+        deepestProcessed.path.toString,
+        decompress = false,
+        streaming = false
+      )
+
+      val processedLayer = ProcessedLayer(waterRasterGeoTiff, elevMaskGeoTiff, filledGeoTiff)
+      LastProcessed.layer = processedLayer
+
+      // Tell the loop to start processing at the next elevation
+      elev - 10
+    } else elevStart
+
+    val oceanBottom = -10800
+    val elevRange = (elevLoopStart to oceanBottom by -10).toList
 
     for (elev <- elevRange) {
 
