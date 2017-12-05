@@ -90,7 +90,7 @@ object GeneratePng {
       val smallTile = resize(waterRaster)
       val projRaster = reproject(smallTile)
 
-      val colourRamp = ColorRamp(RGB(0, 60, 255), RGB(0, 60, 255))
+      val colourRamp = ColorRamp(RGB(0, 33, 143), RGB(0, 33, 143))
       val breaks = Array(0, 4)
       val colouredTile = projRaster.tile.color(colourRamp.toColorMap(breaks))
 

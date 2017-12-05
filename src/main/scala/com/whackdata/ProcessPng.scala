@@ -25,14 +25,21 @@ object ProcessPng {
     val waterPngs = existingPngs
       .filterNot(_.path.getFileName.toString.contains("ETOP"))
       .sortBy(-_.elev)
+      .toArray
 
-    for (wtImg <- waterPngs) {
-      logger.info(s"Processing PNG for elevation ${wtImg.elev}")
-      val img = Image.fromPath(wtImg.path)
-      val composite = baseImage.composite(new ColorComposite(0.5), img)
+    Utils.timems {
 
-      val outputName = Utils.getOutputPath(wtImg.path, outputPath, "Composed", wtImg.elev)
-      composite.output(outputName)
+      def composeImage(base: Image)(wtImg: Utils.ProcessedFile) = {
+        logger.info(s"Processing PNG for elevation ${wtImg.elev}")
+        val img = Image.fromPath(wtImg.path)
+        val composite = base.composite(new AlphaComposite(0.5), img)
+
+        val outputName = Utils.getOutputPath(wtImg.path, outputPath, "Composed", wtImg.elev)
+        composite.output(outputName)
+      }
+
+      waterPngs.par.map(composeImage(baseImage)(_))
+
     }
 
   }

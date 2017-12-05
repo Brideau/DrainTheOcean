@@ -38,6 +38,8 @@ object Main extends App {
     case "processPngs" =>
       logger.info("Start PNG processing")
       ProcessPng.run(conf)
+    case _ =>
+      logger.error("Unknown Job type")
   }
 
 }
