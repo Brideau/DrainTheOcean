@@ -1,6 +1,6 @@
 package com.whackdata
 
-import java.nio.file.Paths
+import java.nio.file.{Paths, Files}
 
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
@@ -55,6 +55,7 @@ object Drain {
     }
 
     // Start where you last finished
+    Files.createDirectories(outputPath.resolve("Water"))
     val alreadyProcessed = getAlreadyProcessed(outputPath, "Water", "tif")
 
     val elevLoopStart: Int = if (alreadyProcessed.nonEmpty && !testFill) {

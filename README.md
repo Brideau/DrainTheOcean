@@ -6,6 +6,8 @@
 
 sbt "run --job simDrain --elev_raster /Users/B/Documents/Projects/DrainOcean/ETOP/ETOP_Cleaned.tif --water_raster /Users/B/Documents/Projects/DrainOcean/Output/MergedWater/OceansLakesProcessed_000000.tif --x 19353 --y 4716 --elev 0 --output_path /Users/B/Documents/Projects/DrainOcean/Output"
 
+sbt "run --job simDrain --elev_raster /home/brideauadmin/Documents/DrainTheOceanResources/ETOP_Cleaned.tif --water_raster /home/brideauadmin/Documents/DrainTheOceanResources/OceansLakesProcessed_000000.tif --x 19353 --y 4716 --elev 0 --output_path /home/brideauadmin/Documents/DrainTheOceanResources/Output"
+
 #### Test Small
 sbt "run --job simDrain --testFill --elev_raster /Users/B/Documents/Projects/DrainOcean/Samples/ETOP_EastCoast2.tif --water_raster /Users/B/Documents/Projects/DrainOcean/Output/MergedWater/OceansLakesProcessed_000000.tif --x 1900 --y 1200 --elev 0 --output_path /Users/B/Documents/Projects/DrainOcean/Output"
 
