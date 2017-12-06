@@ -28,6 +28,8 @@ object ProcessPng {
       .sortBy(-_.elev)
       .toArray
 
+    val waterPngsSorted = waterPngs.sortBy(-_.elev)
+
     Utils.timems {
 
       def composeImage(base: Image)(wtImg: Utils.ProcessedFile) = {
@@ -39,7 +41,7 @@ object ProcessPng {
         composite.output(outputName)
       }
 
-      waterPngs.par.map(composeImage(baseImage)(_))
+      waterPngsSorted.par.map(composeImage(baseImage)(_))
 
     }
 

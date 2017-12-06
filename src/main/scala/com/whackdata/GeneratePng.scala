@@ -9,9 +9,6 @@ import geotrellis.raster.render.{ColorRamp, RGB, RGBA}
 import geotrellis.vector.Extent
 import org.slf4j.LoggerFactory
 import Utils._
-import geotrellis.raster.resample._
-import Constants._
-
 object GeneratePng {
 
   private val logger = LoggerFactory.getLogger("PNG Logger")
@@ -80,6 +77,8 @@ object GeneratePng {
     val outPath = Paths.get(conf.output_path())
     val waterLayers = getAlreadyProcessed(outPath, "Water", "tif")
 
+    val waterLayersSorted = waterLayers.sortBy(-_.elev)
+
     Utils.timems {
       def createPng(layer: ProcessedFile): Unit = {
         logger.info(s"Loading water layer @ elevation ${layer.elev}")
@@ -106,7 +105,7 @@ object GeneratePng {
         smallPng.write(outputPath)
       }
 
-      waterLayers.map(createPng)
+      waterLayersSorted.par.map(createPng)
 
     }
 

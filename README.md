@@ -6,6 +6,7 @@
 
 sbt "run --job simDrain --elev_raster /Users/B/Documents/Projects/DrainOcean/ETOP/ETOP_Cleaned.tif --water_raster /Users/B/Documents/Projects/DrainOcean/Output/MergedWater/OceansLakesProcessed_000000.tif --x 19400 --y 4300 --elev 0 --output_path /Users/B/Documents/Projects/DrainOcean/Output"
 
+sbt "run --job simDrain --testFill --elev_raster /Users/B/Documents/Projects/DrainOcean/Samples/ETOP_EastCoast2.tif --water_raster /Users/B/Documents/Projects/DrainOcean/Output/MergedWater/OceansLakesProcessed_000000.tif --x 1900 --y 1200 --elev 0 --output_path /Users/B/Documents/Projects/DrainOcean/Output"
 
 ### Combine Water
 
@@ -23,3 +24,6 @@ sbt "run --job processPngs --output_path /Users/B/Documents/Projects/DrainOcean/
 
 ### Add Text to PNGs
 sbt "run --job addText --output_path /Users/B/Documents/Projects/DrainOcean/Output"
+
+### Find Min Location
+sbt "run --job getMinLoc --elev_raster /Users/B/Documents/Projects/DrainOcean/ETOP/ETOP_Cleaned.tif"

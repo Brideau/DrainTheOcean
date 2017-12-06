@@ -39,6 +39,8 @@ object Drain {
     val yStart = conf.y()
     val elevStart = conf.elev()
 
+    val testFill = conf.testFill()
+
     // Read in the elevation raster. This will stick around for the duration
     // of the program as it is required throughout.
     logger.info("Reading in Elevation Raster")
@@ -55,7 +57,7 @@ object Drain {
     // Start where you last finished
     val alreadyProcessed = getAlreadyProcessed(outputPath, "Water", "tif")
 
-    val elevLoopStart: Int = if (alreadyProcessed.nonEmpty) {
+    val elevLoopStart: Int = if (alreadyProcessed.nonEmpty && !testFill) {
       val deepestProcessed = alreadyProcessed.minBy(_.elev)
       val elev = deepestProcessed.elev
       logger.info(s"Restarting where processing left off last time @ elevation $elev")
@@ -89,7 +91,7 @@ object Drain {
     } else elevStart
 
     val oceanBottom = -10800
-    val elevRange = (elevLoopStart to oceanBottom by -10).toList
+    val elevRange = if (!testFill) (elevLoopStart to oceanBottom by -10).toList else List(elevLoopStart)
 
     for (elev <- elevRange) {
 
@@ -102,6 +104,10 @@ object Drain {
       // ~37s for entire world
       val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
       val filledGeoTiff = elevRaster.copy(tile = filled)
+      if (testFill) {
+        val filledOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Testing", elev)
+        GeoTiffWriter.write(filledGeoTiff, filledOutPath.toString)
+      }
 
       // For the first layer, seed the existing water from the original water raster.
       // For all others, use the previous layer's water raster, as it represents the

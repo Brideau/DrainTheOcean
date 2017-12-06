@@ -15,6 +15,7 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
   val water_b = opt[String]()
   val output_path = opt[String]()
   val base_raster = opt[String](default = Some("None"))
+  val testFill = toggle("testFill")
   verify()
 }
 
@@ -43,6 +44,9 @@ object Main extends App {
     case "addText" =>
       logger.info("Starting to add Text to PNGs ")
       AddTextPng.run(conf)
+    case "getMinLoc" =>
+      logger.info("Finding min location")
+      GetMinLocation.run(conf)
     case _ =>
       logger.error("Unknown Job type")
   }

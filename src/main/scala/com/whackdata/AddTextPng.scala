@@ -21,7 +21,6 @@ object AddTextPng {
       val text = s"${math.abs(layer.elev)}m below current sea level"
       val image = ImageIO.read(layer.path.toFile)
 
-      // TODO: Add aliasing
       val graphics = image.getGraphics
       graphics.setColor(Color.BLACK)
       graphics.setFont(new Font("Arial", Font.BOLD, 200))
