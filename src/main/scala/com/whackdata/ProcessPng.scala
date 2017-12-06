@@ -20,6 +20,7 @@ object ProcessPng {
       .filter(_.elev == 0)
       .filter(_.path.getFileName.toString.contains("ETOP"))
       .head
+    logger.info("Loading base image")
     val baseImage = Image.fromPath(basePng.path)
 
     val waterPngs = existingPngs

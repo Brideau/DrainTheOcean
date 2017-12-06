@@ -21,10 +21,11 @@ object AddTextPng {
       val text = s"${math.abs(layer.elev)}m below current sea level"
       val image = ImageIO.read(layer.path.toFile)
 
+      // TODO: Add aliasing
       val graphics = image.getGraphics
       graphics.setColor(Color.BLACK)
-      graphics.setFont(new Font("Arial", Font.BOLD, 40))
-      graphics.drawString(text, 10, 40)
+      graphics.setFont(new Font("Arial", Font.BOLD, 200))
+      graphics.drawString(text, 20, 160)
 
       val outName = Utils.getOutputPath(layer.path, outputPath, "WithText", layer.elev)
       ImageIO.write(image, "png", outName.toFile)

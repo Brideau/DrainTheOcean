@@ -5,11 +5,12 @@ import java.nio.file.Paths
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.{Raster, SinglebandRaster, Tile}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import geotrellis.raster.render.{ColorRamp, RGB}
+import geotrellis.raster.render.{ColorRamp, RGB, RGBA}
 import geotrellis.vector.Extent
 import org.slf4j.LoggerFactory
 import Utils._
-
+import geotrellis.raster.resample._
+import Constants._
 
 object GeneratePng {
 
@@ -36,8 +37,8 @@ object GeneratePng {
   }
 
   private def resize(geoTiff: SinglebandGeoTiff): Tile = {
-    logger.info("Resizing layer to 1920x960")
-    geoTiff.tile.resample(1920, 960)
+    logger.info("Downsampling layer")
+    geoTiff.tile.resample(10800, 5400)
   }
 
   private def generateBaseLayer(conf: ParseArgs): Unit = {
@@ -92,8 +93,8 @@ object GeneratePng {
         val projRaster = reproject(smallTile)
 
         val colourRamp = ColorRamp(RGB(0, 33, 143), RGB(0, 33, 143))
-        val breaks = Array(0, 4)
-        val colouredTile = projRaster.tile.color(colourRamp.toColorMap(breaks))
+        val breaks = (0 to 10).toArray
+        val colouredTile = projRaster.tile.color(colourRamp.stops(10).toColorMap(breaks))
 
         logger.info("Rendering water layer PNG")
         val smallPng = colouredTile.renderPng()
@@ -105,7 +106,7 @@ object GeneratePng {
         smallPng.write(outputPath)
       }
 
-      waterLayers.toParArray.map(createPng)
+      waterLayers.map(createPng)
 
     }
 
