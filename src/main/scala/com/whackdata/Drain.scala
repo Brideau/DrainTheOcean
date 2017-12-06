@@ -67,13 +67,13 @@ object Drain {
       // the other ones. We end up repeating this code below, but it doesn't
       // really matter since it's only repeated once.
 
-      logger.info("Re-classifyig the elevation of the last layer")
+      logger.info("Re-classifying the elevation of the last layer")
       val binFn = classifyByElevation(maxElevation = elev)(_,_,_)
       val elevMask = elevRaster.tile.map(binFn)
       val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
 
       logger.info("Re-flood-filling the elevation")
-      val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
+      val filled = floodFillTile(xStart, yStart, elevMask)
       val filledGeoTiff = elevRaster.copy(tile = filled)
 
       logger.info("Loading the last calculated water raster")
@@ -94,66 +94,66 @@ object Drain {
     val elevRange = if (!testFill) (elevLoopStart to oceanBottom by -10).toList else List(elevLoopStart)
 
     for (elev <- elevRange) {
+      Utils.timems {
+        logger.info(s"Classifying raster by elevation @ elevation = $elev")
+        val binFn = classifyByElevation(maxElevation = elev)(_, _, _)
+        val elevMask = elevRaster.tile.map(binFn)
+        val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
 
-      logger.info(s"Classifying raster by elevation @ elevation = $elev")
-      val binFn = classifyByElevation(maxElevation = elev)(_,_,_)
-      val elevMask = elevRaster.tile.map(binFn)
-      val elevMaskGeoTiff = elevRaster.copy(tile = elevMask)
+        logger.info(s"Performing flood fill @ elevation = $elev")
+        // ~37s for entire world
+        val filled = floodFillTile(xStart, yStart, elevMask)
+        val filledGeoTiff = elevRaster.copy(tile = filled)
+        if (testFill) {
+          val filledOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Testing", elev)
+          GeoTiffWriter.write(filledGeoTiff, filledOutPath.toString)
+        }
 
-      logger.info(s"Performing flood fill @ elevation = $elev")
-      // ~37s for entire world
-      val filled = Utils.timems(floodFillTile(xStart, yStart, elevMask))
-      val filledGeoTiff = elevRaster.copy(tile = filled)
-      if (testFill) {
-        val filledOutPath = Utils.getOutputPath(elevRasterPath, outputPath, "Testing", elev)
-        GeoTiffWriter.write(filledGeoTiff, filledOutPath.toString)
+        // For the first layer, seed the existing water from the original water raster.
+        // For all others, use the previous layer's water raster, as it represents the
+        // most recent state
+        val waterRasterGeoTiff: SinglebandGeoTiff = if (elev == elevStart) {
+          logger.info("Loading initial water raster")
+          GeoTiffReader.readSingleband(
+            waterRasterPath.toString,
+            decompress = false,
+            streaming = false
+          )
+        } else {
+          logger.info(s"Processing water raster @ elevation = $elev")
+          val lastWater = LastProcessed.layer.waterRaster
+          val lastFloodFill = LastProcessed.layer.floodFillMask
+          val currElevMask = elevMaskGeoTiff.tile
+
+          // The water from the last step, with the current land now
+          // above the water removed
+          val waterA = lastWater.tile.combine(currElevMask) { (lw, ce) =>
+            if (ce == 0) noData else lw
+          }
+
+          // The water from the last step, with the parts that were accessible
+          // last time removed
+          val waterB = lastWater.tile.combine(lastFloodFill.tile) { (lw, lf) =>
+            if (lf == 2) noData else lw
+          }
+
+          // Merge these two components together
+          val waterCurrent = waterA.combine(waterB) { (a, b) =>
+            if (a == 2 || b == 2) 2 else noData
+          }
+
+          lastWater.copy(tile = waterCurrent)
+        }
+
+        logger.info("Writing water raster to disk")
+        val waterOutPath = Utils.getOutputPath(waterRasterPath, outputPath, "Water", elev)
+        GeoTiffWriter.write(waterRasterGeoTiff, waterOutPath.toString)
+
+        // Create an object from each of the processed components and store it so that
+        // we can use it for calculations during the next iteration
+        val processedLayer = ProcessedLayer(waterRasterGeoTiff, elevMaskGeoTiff, filledGeoTiff)
+        LastProcessed.layer = processedLayer
       }
-
-      // For the first layer, seed the existing water from the original water raster.
-      // For all others, use the previous layer's water raster, as it represents the
-      // most recent state
-      val waterRasterGeoTiff: SinglebandGeoTiff = if (elev == elevStart) {
-        logger.info("Loading initial water raster")
-        GeoTiffReader.readSingleband(
-          waterRasterPath.toString,
-          decompress = false,
-          streaming = false
-        )
-      } else {
-        logger.info(s"Processing water raster @ elevation = $elev")
-        val lastWater = LastProcessed.layer.waterRaster
-        val lastFloodFill = LastProcessed.layer.floodFillMask
-        val currElevMask = elevMaskGeoTiff.tile
-
-        // The water from the last step, with the current land now
-        // above the water removed
-        val waterA = lastWater.tile.combine(currElevMask) { (lw, ce) =>
-          if (ce == 0) noData else lw
-        }
-
-        // The water from the last step, with the parts that were accessible
-        // last time removed
-        val waterB = lastWater.tile.combine(lastFloodFill.tile) { (lw, lf) =>
-          if (lf == 2) noData else lw
-        }
-
-        // Merge these two components together
-        val waterCurrent = waterA.combine(waterB) {(a, b) =>
-          if (a == 2 || b == 2) 2 else noData
-        }
-
-        lastWater.copy(tile = waterCurrent)
-      }
-
-      logger.info("Writing water raster to disk")
-      val waterOutPath = Utils.getOutputPath(waterRasterPath, outputPath, "Water", elev)
-      GeoTiffWriter.write(waterRasterGeoTiff, waterOutPath.toString)
-
-      // Create an object from each of the processed components and store it so that
-      // we can use it for calculations during the next iteration
-      val processedLayer = ProcessedLayer(waterRasterGeoTiff, elevMaskGeoTiff, filledGeoTiff)
-      LastProcessed.layer = processedLayer
-
     }
   }
 
