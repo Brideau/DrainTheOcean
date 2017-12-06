@@ -68,14 +68,25 @@ class FloodFill(val tileToFill: MutableArrayTile,
         var spanAbove = false
         var spanBelow = false
 
+        // Are we at the start of the line for this row?
+        var atStartAbove = true
+        var atStartBelow = true
+
         // Scan the row left to right until you reach a barrier
         while (needsPainting(currX, y).getOrElse(false)) {
           // Colour in the pixels as you go
           tileToFill.set(currX, y, colorValue)
 
+          // Check the diagonal at the start to support 8-way filling
+          if (!spanAbove && needsPainting(wrap(currX - 1), y - 1).getOrElse(false) && atStartAbove) {
+            rowStack = Array(wrap(currX - 1), y - 1) :: rowStack
+            atStartAbove = false
+          }
+
           // If the row above hasn't been checked yet, and the pixel above
           // the current pixel needs painting
           if (!spanAbove && needsPainting(currX, y - 1).getOrElse(false)) {
+
             // Add the pixel to the stack and set a flag saying that you've
             // check the row above
             rowStack = Array(currX, y - 1) :: rowStack
@@ -86,14 +97,29 @@ class FloodFill(val tileToFill: MutableArrayTile,
             spanAbove = false
           }
 
+          if (!spanBelow && needsPainting(wrap(currX - 1), y + 1).getOrElse(false) && atStartBelow) {
+            rowStack = Array(wrap(currX - 1), y + 1) :: rowStack
+            atStartBelow = false
+          }
+
           // Same as above, but checks the pixels below the current line
           if (!spanBelow && needsPainting(currX, y + 1).getOrElse(false)) {
+
             rowStack = Array(currX, y + 1) :: rowStack
           } else if (spanBelow && y < tileHeight && !needsPainting(currX, y + 1).getOrElse(false)) {
             spanBelow = false
           }
 
           currX = wrap(currX + 1)
+        }
+
+        // Check diagonals a the end of the row
+        if (needsPainting(wrap(currX), y - 1).getOrElse(false)) {
+          rowStack = Array(wrap(currX), y - 1) :: rowStack
+        }
+
+        if (needsPainting(wrap(currX), y + 1).getOrElse(false)) {
+          rowStack = Array(wrap(currX), y + 1) :: rowStack
         }
 
       }
