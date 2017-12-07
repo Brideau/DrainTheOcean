@@ -60,7 +60,7 @@ object FloodFillMasks {
       }
     }
 
-    elevList.par.foreach(processLayer)
+    elevList.foreach(processLayer)
   }
 
 }
