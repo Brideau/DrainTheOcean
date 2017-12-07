@@ -36,7 +36,6 @@ object FloodFillMasks {
 
     val oceanBottom = -10800
     val numElev = (0 to oceanBottom by -10).length
-    val pb = new ProgressBar("Flood Fill", numElev)
 
     val elevList: List[ProcessedFile] = if (processedFills.nonEmpty) {
       logger.info(s"Restarting where processing left off last time")
@@ -45,8 +44,8 @@ object FloodFillMasks {
       elevMasks.filterNot(x => alreadyProcessedElevs.contains(x.elev))
     } else elevMasks
 
-    val numProcessed = numElev - elevList.length
-    pb.stepBy(numProcessed)
+    var numProcessed = numElev - elevList.length
+    logger.info(s"$numProcessed of $numElev already processed")
 
     def processLayer(elevMask: ProcessedFile): Unit = {
       Utils.timems {
@@ -66,7 +65,8 @@ object FloodFillMasks {
         val filledOutPath = Utils.getOutputPath(elevMask.path, outputPath, "FloodFill", elev)
         GeoTiffWriter.write(filledGeoTiff, filledOutPath.toString)
 
-        pb.step()
+        numProcessed += 1
+        logger.info(s"$numProcessed of $numElev already processed")
       }
     }
 

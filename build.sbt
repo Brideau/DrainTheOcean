@@ -14,10 +14,6 @@ libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-core" % scrimmageVer
 libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-io-extra" % scrimmageVersion
 libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % scrimmageVersion
 
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.7"
-
-libraryDependencies += "me.tongfei" % "progressbar" % "0.5.5"
-
 mainClass in assembly := Some("com.whackdata.Main")
 
 // These let you enter input in the terminal if running via SBT
