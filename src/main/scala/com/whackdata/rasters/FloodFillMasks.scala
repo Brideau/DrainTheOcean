@@ -52,7 +52,7 @@ object FloodFillMasks {
         )
 
         logger.info(s"Performing flood fill @ elevation = $elev")
-        val filled = floodFillTile(xStart, yStart, elevRaster.copy().tile)
+        val filled = floodFillTile(xStart, yStart, elevRaster.tile)
         val filledGeoTiff = elevRaster.copy(tile = filled)
 
         val filledOutPath = Utils.getOutputPath(elevMask.path, outputPath, "FloodFill", elev)
