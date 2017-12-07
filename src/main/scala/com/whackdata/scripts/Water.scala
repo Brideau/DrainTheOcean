@@ -1,4 +1,4 @@
-package com.whackdata.rasters
+package com.whackdata.scripts
 
 import java.nio.file.{Path, Paths}
 

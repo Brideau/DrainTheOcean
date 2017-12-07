@@ -65,7 +65,7 @@ object FloodFillMasks {
         GeoTiffWriter.write(filledGeoTiff, filledOutPath.toString)
 
         numProcessed += 1
-        logger.info(s"$numProcessed of $numElev already processed")
+        logger.info(s"$numProcessed of $numElev processed")
       }
     }
 
