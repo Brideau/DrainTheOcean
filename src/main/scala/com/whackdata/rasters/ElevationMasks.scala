@@ -9,7 +9,7 @@ import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
 
-object GenerateElevationMasks {
+object ElevationMasks {
 
   private val logger = LoggerFactory.getLogger("Elevation Mask Logger")
 
@@ -18,7 +18,7 @@ object GenerateElevationMasks {
     if (elevation > maxElevation) 0 else 1
   }
 
-  def run(conf: ParseArgs): Unit = {
+  def generate(conf: ParseArgs): Unit = {
     val elevRasterPath = Paths.get(conf.elev_raster())
 
     val outputPath = Paths.get(conf.output_path())

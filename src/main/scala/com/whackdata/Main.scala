@@ -1,7 +1,7 @@
 package com.whackdata
 
 import com.whackdata.pngs.{AddTextPng, GeneratePng, ProcessPng}
-import com.whackdata.rasters.{Drain, GenerateElevationMasks, Water}
+import com.whackdata.rasters.{Drain, ElevationMasks, FloodFillMasks, Water}
 import com.whackdata.scripts.GetMinLocation
 import org.rogach.scallop.ScallopConf
 import org.slf4j.LoggerFactory
@@ -36,7 +36,10 @@ object Main extends App {
       Drain.simDrain(conf)
     case "generateElevMasks" =>
       logger.info("Generating elevation masks")
-      GenerateElevationMasks.run(conf)
+      ElevationMasks.generate(conf)
+    case "generateFloodFillMasks" =>
+      logger.info("Generating flood fill masks")
+      FloodFillMasks.generate(conf)
     case "combineWater" =>
       logger.info("Starting water combining process")
       Water.merge(conf)
