@@ -32,7 +32,7 @@ object Main extends App {
     case "simDrain" =>
       logger.info("Starting drain simulation")
       Drain.simDrain(conf)
-    case "GenerateElevMasks" =>
+    case "generateElevMasks" =>
       logger.info("Generating elevation masks")
       GenerateElevationMasks.run(conf)
     case "combineWater" =>
