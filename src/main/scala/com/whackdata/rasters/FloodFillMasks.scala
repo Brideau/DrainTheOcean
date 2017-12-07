@@ -44,7 +44,7 @@ object FloodFillMasks {
       Utils.timems {
         val elev = elevMask.elev
 
-        logger.info(s"Loading raster for @ elevation = $elev")
+        logger.info(s"Loading raster for elevation = $elev")
         val elevRaster = GeoTiffReader.readSingleband(
           elevMask.path.toString,
           decompress = false,
