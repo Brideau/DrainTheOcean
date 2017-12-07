@@ -7,7 +7,6 @@ import com.whackdata.{ParseArgs, Utils}
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
-import me.tongfei.progressbar.ProgressBar
 import org.slf4j.LoggerFactory
 
 object FloodFillMasks {
