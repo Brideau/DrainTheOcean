@@ -45,7 +45,7 @@ object GenerateElevationMasks {
     } else elevStart
 
     val oceanBottom = -10800
-    val elevRange = elevLoopStart to oceanBottom by -10
+    val elevRange = (elevLoopStart to oceanBottom by -10).toList
 
     def processElevMask(elev: Int) {
       Utils.timems {
