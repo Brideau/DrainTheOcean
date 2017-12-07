@@ -33,20 +33,17 @@ object GenerateElevationMasks {
     )
 
     // Start where you last finished
-//    Files.createDirectories(outputPath.resolve("ElevMasks"))
-//    val alreadyProcessed = getAlreadyProcessed(outputPath, "ElevMasks", "tif")
-
-//    val elevLoopStart: Int = if (alreadyProcessed.nonEmpty) {
-//      val deepestProcessed = alreadyProcessed.minBy(_.elev)
-//      val elev = deepestProcessed.elev
-//      logger.info(s"Restarting where processing left off last time @ elevation $elev")
-//      // Tell the loop to start processing at the next elevation
-//      elev
-//    } else elevStart
-    val elevLoopStart = elevStart
+    Files.createDirectories(outputPath.resolve("ElevMasks"))
+    val alreadyProcessed = getAlreadyProcessed(outputPath, "ElevMasks", "tif")
 
     val oceanBottom = -10800
-    val elevRange: List[Int] = (elevLoopStart to oceanBottom by -10).toList
+    val elevRange: List[Int] = (elevStart to oceanBottom by -10).toList
+
+    val elevList: List[Int] = if (alreadyProcessed.nonEmpty) {
+      logger.info(s"Restarting where processing left off last time")
+      val alreadyProcessedElevs = alreadyProcessed.map(_.elev)
+      elevRange.diff(alreadyProcessedElevs)
+    } else elevRange
 
     def processElevMask(elev: Int) {
       Utils.timems {
@@ -61,7 +58,7 @@ object GenerateElevationMasks {
       }
     }
 
-    elevRange.par.foreach(processElevMask)
+    elevList.par.foreach(processElevMask)
   }
 
 }
