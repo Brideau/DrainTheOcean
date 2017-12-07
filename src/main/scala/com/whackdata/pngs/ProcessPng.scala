@@ -1,9 +1,10 @@
-package com.whackdata
+package com.whackdata.pngs
 
 import java.nio.file.Paths
 
 import com.sksamuel.scrimage.Image
 import com.sksamuel.scrimage.composite._
+import com.whackdata.{ParseArgs, Utils}
 import org.slf4j.LoggerFactory
 
 object ProcessPng {

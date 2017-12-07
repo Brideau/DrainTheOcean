@@ -1,10 +1,11 @@
-package com.whackdata
+package com.whackdata.pngs
 
 import java.awt.{Color, Font}
 import java.nio.file.Paths
 import javax.imageio.ImageIO
 
 import com.whackdata.Utils.ProcessedFile
+import com.whackdata.{ParseArgs, Utils}
 import org.slf4j.LoggerFactory
 
 object AddTextPng {

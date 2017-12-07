@@ -1,8 +1,9 @@
-package com.whackdata
+package com.whackdata.rasters
 
 import java.nio.file.{Path, Paths}
 
-import Constants.noData
+import com.whackdata.Constants.noData
+import com.whackdata.{ParseArgs, Utils}
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter

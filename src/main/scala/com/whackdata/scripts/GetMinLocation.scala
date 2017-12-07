@@ -1,10 +1,9 @@
-package com.whackdata
+package com.whackdata.scripts
 
 import java.nio.file.Paths
 
+import com.whackdata.ParseArgs
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import Constants._
-import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 
 object GetMinLocation {
 

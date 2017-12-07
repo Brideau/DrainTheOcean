@@ -1,5 +1,8 @@
 package com.whackdata
 
+import com.whackdata.pngs.{AddTextPng, GeneratePng, ProcessPng}
+import com.whackdata.rasters.{Drain, GenerateElevationMasks, Water}
+import com.whackdata.scripts.GetMinLocation
 import org.rogach.scallop.ScallopConf
 import org.slf4j.LoggerFactory
 
@@ -22,7 +25,6 @@ class ParseArgs(arguments: Seq[String]) extends ScallopConf(arguments) {
 object Main extends App {
 
   // TODO: Clean up naming so that they don't grow forever
-
   private val logger = LoggerFactory.getLogger("Main Logger")
 
   val conf = new ParseArgs(args)

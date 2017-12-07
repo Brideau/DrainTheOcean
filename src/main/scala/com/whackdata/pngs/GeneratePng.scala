@@ -1,15 +1,18 @@
-package com.whackdata
+package com.whackdata.pngs
 
 import java.nio.file.Paths
 
+import com.whackdata.Utils.{ProcessedFile, getAlreadyProcessed}
+import com.whackdata.{ParseArgs, Utils}
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
-import geotrellis.raster.{Raster, SinglebandRaster, Tile}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import geotrellis.raster.render.{ColorRamp, RGB, RGBA}
+import geotrellis.raster.render.{ColorRamp, RGB}
+import geotrellis.raster.{Raster, SinglebandRaster, Tile}
 import geotrellis.vector.Extent
 import org.slf4j.LoggerFactory
-import Utils._
 object GeneratePng {
+
+  // TODO: Refactor to remove this useless case matching
 
   private val logger = LoggerFactory.getLogger("PNG Logger")
 

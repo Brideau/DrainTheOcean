@@ -1,4 +1,4 @@
-package com.whackdata
+package com.whackdata.rasters
 
 import geotrellis.raster.MutableArrayTile
 

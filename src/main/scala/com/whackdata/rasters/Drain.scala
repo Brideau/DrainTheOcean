@@ -1,15 +1,15 @@
-package com.whackdata
+package com.whackdata.rasters
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
 
+import com.whackdata.Constants.noData
+import com.whackdata.Utils.getAlreadyProcessed
+import com.whackdata.{ParseArgs, Utils}
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
-import Constants.noData
-
-import Utils.getAlreadyProcessed
 
 object Drain {
 
