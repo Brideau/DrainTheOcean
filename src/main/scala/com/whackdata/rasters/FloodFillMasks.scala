@@ -7,6 +7,7 @@ import com.whackdata.{ParseArgs, Utils}
 import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
+import me.tongfei.progressbar.ProgressBar
 import org.slf4j.LoggerFactory
 
 object FloodFillMasks {
@@ -33,12 +34,19 @@ object FloodFillMasks {
     Files.createDirectories(outputPath.resolve("ElevMasks"))
     val elevMasks = getAlreadyProcessed(outputPath, "ElevMasks", "tif")
 
+    val oceanBottom = -10800
+    val numElev = (0 to oceanBottom by -10).length
+    val pb = new ProgressBar("Flood Fill", numElev)
+
     val elevList: List[ProcessedFile] = if (processedFills.nonEmpty) {
       logger.info(s"Restarting where processing left off last time")
       val alreadyProcessedElevs = processedFills.map(_.elev)
 
       elevMasks.filterNot(x => alreadyProcessedElevs.contains(x.elev))
     } else elevMasks
+
+    val numProcessed = numElev - elevList.length
+    pb.stepBy(numProcessed)
 
     def processLayer(elevMask: ProcessedFile): Unit = {
       Utils.timems {
@@ -57,8 +65,11 @@ object FloodFillMasks {
 
         val filledOutPath = Utils.getOutputPath(elevMask.path, outputPath, "FloodFill", elev)
         GeoTiffWriter.write(filledGeoTiff, filledOutPath.toString)
+
+        pb.step()
       }
     }
+
 
     elevList.foreach(processLayer)
   }

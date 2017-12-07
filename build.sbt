@@ -16,6 +16,8 @@ libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % scrimmage
 
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.7"
 
+libraryDependencies += "me.tongfei" % "progressbar" % "0.5.5"
+
 mainClass in assembly := Some("com.whackdata.Main")
 
 // These let you enter input in the terminal if running via SBT
@@ -29,5 +31,5 @@ initialize := {
   val current  = sys.props("java.specification.version")
   assert(current == required, s"Unsupported JDK: java.specification.version $current != $required")
 }
-javaOptions in run += "-Xmx10G"
-javaOptions in run += "-Xms10G"
+javaOptions in run += "-Xmx8G"
+javaOptions in run += "-Xms8G"
