@@ -14,6 +14,14 @@ libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-core" % scrimmageVer
 libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-io-extra" % scrimmageVersion
 libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % scrimmageVersion
 
+libraryDependencies  ++= Seq(
+  "org.scalanlp" %% "breeze" % "0.13.2",
+  "org.scalanlp" %% "breeze-natives" % "0.13.2"
+)
+resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
+
+libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.5"
+
 mainClass in assembly := Some("com.whackdata.Main")
 
 // These let you enter input in the terminal if running via SBT

@@ -17,6 +17,7 @@ object AddTextPng {
     val existingPngs = Utils.getAlreadyProcessed(outputPath, "Composed", "png")
 
 
+
     def addText(layer: ProcessedFile) = {
       logger.info(s"Adding text for elevation ${layer.elev}")
       val text = s"${math.abs(layer.elev)}m below current sea level"

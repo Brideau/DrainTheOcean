@@ -61,6 +61,8 @@ object Main extends App {
     case "getMinLoc" =>
       logger.info("Finding min location")
       GetMinLocation.run(conf)
+    case "calcTime" =>
+      Time.calculate(conf)
     case _ =>
       logger.error("Unknown Job type")
   }
