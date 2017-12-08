@@ -9,9 +9,11 @@ import breeze.numerics._
 import com.whackdata.{ParseArgs, Utils, WriterActor}
 import com.github.tototoshi.csv._
 import com.whackdata.Utils.{ProcessedFile, getAlreadyProcessed}
+import com.whackdata.WriterActor.CsvLine
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import org.slf4j.LoggerFactory
 
+import scala.io.StdIn
 import scala.util.{Failure, Success, Try}
 
 object Time {
@@ -79,15 +81,21 @@ object Time {
       // Get the surface area count of cells for the water that
       // dropped as a result of the draining
       val cells = floodRaster.tile.histogram.itemCount(2)
+      val time = calculateTimeYears(cells, file.elev)
 
-      wa ! List(file.elev, calculateTimeYears(cells, file.elev))
+      wa ! CsvLine(List(file.elev, time))
     }
     val processLayerWActor = processLayer(writerActor)(_)
 
     Utils.timems {
-      toProcess
-        .foreach(processLayerWActor)
+      toProcess.par.foreach(processLayerWActor)
     }
+
+    logger.info(s"Press RETURN to stop...")
+    StdIn.readLine()
+    system.terminate;
+    System.exit(0)
+
   }
 
 

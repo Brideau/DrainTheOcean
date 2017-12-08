@@ -19,6 +19,8 @@ class WriterActor(writer: CSVWriter) extends Actor with ActorLogging {
   override def receive: PartialFunction[Any, Unit] = {
     case CsvLine(line) =>
       writer.writeRow(line)
+    case _ =>
+      log.info("Unknown message type")
   }
 
   override def postStop(): Unit = {
