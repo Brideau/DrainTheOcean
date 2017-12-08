@@ -5,10 +5,15 @@ import java.nio.file.{Files, Paths}
 import com.whackdata.Constants.noData
 import com.whackdata.Utils.{ProcessedFile, getAlreadyProcessed}
 import com.whackdata.{ParseArgs, Utils}
+import geotrellis.raster.Tile
 import geotrellis.raster.io.geotiff.SinglebandGeoTiff
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.slf4j.LoggerFactory
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
 object WaterLevels {
 
@@ -69,38 +74,66 @@ object WaterLevels {
           logger.info(s"Processing water raster @ elevation = ${layer.elev}")
           val lastWater = LastProcessed.layer
 
-          val lastFloodFillFile = floodFills.filter(_.elev == layer.elev + 10).head
-          val lastFloodFill = GeoTiffReader.readSingleband(
-            lastFloodFillFile.path.toString,
-            decompress = false,
-            streaming = false
-          )
-
-          val currElevMaskFile = elevMasks.filter(_.elev == layer.elev).head
-          val currElevMask = GeoTiffReader.readSingleband(
+          val currElevMask = Future {
+            logger.info(s"Loading elevation mask")
+            val currElevMaskFile = elevMasks.filter(_.elev == layer.elev).head
+            GeoTiffReader.readSingleband(
             currElevMaskFile.path.toString,
             decompress = false,
             streaming = false
           )
+          }
+
+          val lastFloodFill = Future {
+            logger.info(s"Loading flood fill")
+            val lastFloodFillFile = floodFills.filter(_.elev == layer.elev + 10).head
+            GeoTiffReader.readSingleband(
+              lastFloodFillFile.path.toString,
+              decompress = false,
+              streaming = false
+            )
+          }
 
           // The water from the last step, with the current land now
           // above the water removed
-          val waterA = lastWater.tile.combine(currElevMask.tile) { (lw, ce) =>
-            if (ce == 0) noData else lw
+          def waterA(currElevMask: SinglebandGeoTiff) = Future {
+            logger.info("Processing LHS of equation")
+            lastWater.tile.combine(currElevMask.tile) { (lw, ce) =>
+              if (ce == 0) noData else lw
+            }
           }
+
+          val LHS = currElevMask.flatMap(waterA)
 
           // The water from the last step, with the parts that were accessible
           // last time removed
-          val waterB = lastWater.tile.combine(lastFloodFill.tile) { (lw, lf) =>
-            if (lf == 2) noData else lw
+          def waterB(lastFloodFill: SinglebandGeoTiff) = Future {
+            logger.info("Processing RHS of equation")
+            lastWater.tile.combine(lastFloodFill.tile) { (lw, lf) =>
+              if (lf == 2) noData else lw
+            }
           }
+
+          val RHS = lastFloodFill.flatMap(waterB)
 
           // Merge these two components together
-          val waterCurrent = waterA.combine(waterB) { (a, b) =>
-            if (a == 2 || b == 2) 2 else noData
+          def combineWaterAB(waterA: Tile, waterB: Tile) = Future {
+            logger.info("Combining LHS with RHS")
+            waterA.combine (waterB) {
+              (a, b) => if (a == 2 || b == 2) 2 else noData
+            }
           }
 
-          lastWater.copy(tile = waterCurrent)
+          val combined = for {
+            a <- LHS
+            b <- RHS
+            waterCurrent <- combineWaterAB(a, b)
+          } yield lastWater.copy(tile = waterCurrent)
+
+          // We actually do have to block here because each iteration depends
+          // on the last being complete
+          logger.info(s"Awaiting result for elevation ${layer.elev}")
+          Await.result(combined, Duration.create(1000, SECONDS))
         }
 
         logger.info("Writing water raster to disk")
