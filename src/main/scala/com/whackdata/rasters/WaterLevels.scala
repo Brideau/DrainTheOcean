@@ -44,7 +44,7 @@ object WaterLevels {
     } else floodFills
 
     logger.info("Loading the last calculated water raster")
-    val deepestProcessed = elevList.minBy(_.elev)
+    val deepestProcessed = processedWater.minBy(_.elev)
     val waterRasterGeoTiff = GeoTiffReader.readSingleband(
       deepestProcessed.path.toString,
       decompress = false,
