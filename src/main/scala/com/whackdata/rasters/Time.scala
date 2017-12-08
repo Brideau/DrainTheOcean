@@ -1,18 +1,26 @@
 package com.whackdata.rasters
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
+import akka.actor.{ActorRef, ActorSystem}
 import breeze.numerics.constants._
 import breeze.numerics._
-import com.whackdata.ParseArgs
+import com.whackdata.{ParseArgs, Utils, WriterActor}
 import com.github.tototoshi.csv._
+import com.whackdata.Utils.{ProcessedFile, getAlreadyProcessed}
+import geotrellis.raster.io.geotiff.reader.GeoTiffReader
+import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
 
 object Time {
 
-  def calculateTimeYears(rasterCells: Int, elev: Int): Double = {
+  implicit val system: ActorSystem = ActorSystem("csv-writer-actor-system")
+
+  private val logger = LoggerFactory.getLogger("Time Logger")
+
+  private def calculateTimeYears(rasterCells: Long, elev: Int): Double = {
     val heightDiff = 10 // metres
 
     // Each cell is about 1855m on both sides (very rough)
@@ -27,41 +35,59 @@ object Time {
     val flowRate: Double = sqrt(2 * StandardAccelerationOfGravity * waterHeight) * holeArea
 
     val secondsPerYear: Double = 365.25 * 24 * 60 * 30
-    volumeWater / flowRate / secondsPerYear
+    round(volumeWater / flowRate / secondsPerYear)
   }
 
-  def calculate(conf: ParseArgs) = {
-    val data = List((0, 1000), (-10, 800), (-20, 700), (-30, 45345), (-40, 232123))
+  private def getCsv(file: File) = Try {
+    val reader = CSVReader.open(file)
+    val records = reader.all()
+    reader.close()
+    records
+  }
+
+  def calculate(conf: ParseArgs): Unit = {
 
     val outputPath = Paths.get(conf.output_path())
 
     val fileName = "TimeResults.csv"
     val file = new File(outputPath.toString, fileName)
 
-    def getCsv(file: File) = Try {
-      val reader = CSVReader.open(file)
-      val records = reader.all()
-      reader.close()
-      records
-    }
-
     val records = getCsv(file) match {
       case Success(result) => result
       case Failure(_) => List()
     }
 
-    val alreadyProcessed = records.map(_.head.toDouble.toInt)
+    Files.createDirectories(outputPath.resolve("FloodFill"))
+    val floodFillMasks = getAlreadyProcessed(outputPath, "FloodFill", "tif")
 
-    val remainingElev = data.map{case (a, _) => a}.diff(alreadyProcessed)
-    remainingElev.foreach(println)
-    val toProcess = data.filter{case (elev, _) => remainingElev.contains(elev)}
+    val alreadyProcessed = records.map(_.head.toDouble.toInt)
+    val remainingElev = floodFillMasks.map(_.elev).diff(alreadyProcessed)
+    val toProcess = floodFillMasks.filter(x => remainingElev.contains(x.elev))
 
     val writer = CSVWriter.open(file, append = true)
+    val writerActor = system.actorOf(WriterActor.props(writer))
 
-    toProcess.map{case (elev, cells) => List(elev, calculateTimeYears(cells, elev))}
-      .foreach(writer.writeRow)
+    def processLayer(wa: ActorRef)(file: ProcessedFile): Unit = {
+      logger.info(s"Calculating drain time for layer ${file.elev}")
 
-    writer.close()
+      val floodRaster = GeoTiffReader.readSingleband(
+        file.path.toString,
+        decompress = false,
+        streaming = false
+      )
+
+      // Get the surface area count of cells for the water that
+      // dropped as a result of the draining
+      val cells = floodRaster.tile.histogram.itemCount(2)
+
+      wa ! List(file.elev, calculateTimeYears(cells, file.elev))
+    }
+    val processLayerWActor = processLayer(writerActor)(_)
+
+    Utils.timems {
+      toProcess
+        .foreach(processLayerWActor)
+    }
   }
 
 

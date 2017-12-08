@@ -22,6 +22,9 @@ resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositori
 
 libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.5"
 
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.7"
+
+
 mainClass in assembly := Some("com.whackdata.Main")
 
 // These let you enter input in the terminal if running via SBT
