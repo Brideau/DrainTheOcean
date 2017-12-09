@@ -119,7 +119,7 @@ object GeneratePng {
         smallPng.write(outputPath)
       }
 
-      waterLayers.par.foreach(createPng)
+      waterLayerList.par.foreach(createPng)
 
     }
 
