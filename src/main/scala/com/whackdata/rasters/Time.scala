@@ -14,7 +14,8 @@ import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import org.slf4j.LoggerFactory
 
 import scala.io.StdIn
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
+import Utils._
 
 object Time {
 
@@ -38,13 +39,6 @@ object Time {
 
     val secondsPerYear: Double = 365.25 * 24 * 60 * 30
     round(volumeWater / flowRate / secondsPerYear)
-  }
-
-  private def getCsv(file: File) = Try {
-    val reader = CSVReader.open(file)
-    val records = reader.all()
-    reader.close()
-    records
   }
 
   def calculate(conf: ParseArgs): Unit = {

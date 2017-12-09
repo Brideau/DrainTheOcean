@@ -1,7 +1,12 @@
 package com.whackdata
 
+import java.io.File
 import java.nio.file.{Files, Path}
+
+import com.github.tototoshi.csv.CSVReader
+
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 object Utils {
 
@@ -43,6 +48,13 @@ object Utils {
     fileElev
       .zip(filePaths)
       .map(tup => ProcessedFile(tup._1, tup._2))
+  }
+
+  def getCsv(file: File): Try[List[List[String]]] = Try {
+    val reader = CSVReader.open(file)
+    val records = reader.all()
+    reader.close()
+    records
   }
 
   def timems[R](block: => R): R = {

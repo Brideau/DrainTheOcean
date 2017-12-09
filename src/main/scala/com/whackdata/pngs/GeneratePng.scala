@@ -80,7 +80,18 @@ object GeneratePng {
     val outPath = Paths.get(conf.output_path())
     val waterLayers = getAlreadyProcessed(outPath, "Water", "tif")
 
-    val waterLayersSorted = waterLayers.sortBy(-_.elev)
+    val waterPngs = getAlreadyProcessed(outPath, "PNG", "png")
+
+    val oceanBottom = -10800
+    val numTotal = (0 to oceanBottom by -10).length
+    logger.info(s"${waterPngs.length} of $numTotal have already been processed")
+
+    val waterLayerList: List[ProcessedFile] = if (waterPngs.nonEmpty) {
+      logger.info(s"Restarting where processing left off last time")
+      val alreadyProcessed = waterPngs.map(_.elev)
+
+      waterLayers.filterNot(x => alreadyProcessed.contains(x.elev))
+    } else waterLayers
 
     Utils.timems {
       def createPng(layer: ProcessedFile): Unit = {
@@ -108,7 +119,7 @@ object GeneratePng {
         smallPng.write(outputPath)
       }
 
-      waterLayersSorted.par.map(createPng)
+      waterLayers.par.foreach(createPng)
 
     }
 
