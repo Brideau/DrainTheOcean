@@ -53,10 +53,6 @@ object AddTextPng {
         List()
     }
 
-    // Elev     Time
-    //  0         0
-    //  -10      0 + time_for_elev_0
-
     val timeRecordPrep = timeRecords.map{
       case elev::time => (elev.toDouble, time.head.toDouble)
     }.sortBy(-_._1)
@@ -82,8 +78,8 @@ object AddTextPng {
     def addText(layer: ProcessedFile) = Utils.timems {
       logger.info(s"Adding text for elevation ${layer.elev}")
 
-      // val year = timeLookup.get(layer.elev)
-      val yearStr = formatter.format(1000000)
+      val year = timeLookup.getOrElse(layer.elev, 0)
+      val yearStr = formatter.format(year)
       val text = s"$yearStr Years After Pulling the Plug"
 
       val image = ImageIO.read(layer.path.toFile)
