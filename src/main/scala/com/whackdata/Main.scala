@@ -63,8 +63,6 @@ object Main extends App {
       GetMinLocation.run(conf)
     case "calcTime" =>
       Time.calculate(conf)
-    case "Animate" =>
-      Animate.run(conf)
     case _ =>
       logger.error("Unknown Job type")
   }
