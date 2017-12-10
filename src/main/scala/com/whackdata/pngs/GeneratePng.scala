@@ -88,7 +88,9 @@ object GeneratePng {
 
     val waterLayerList: List[ProcessedFile] = if (waterPngs.nonEmpty) {
       logger.info(s"Restarting where processing left off last time")
-      val alreadyProcessed = waterPngs.map(_.elev)
+      val alreadyProcessed = waterPngs
+        .filterNot(_.path.getFileName.toString.contains("ETOP"))
+        .map(_.elev)
 
       waterLayers.filterNot(x => alreadyProcessed.contains(x.elev))
     } else waterLayers

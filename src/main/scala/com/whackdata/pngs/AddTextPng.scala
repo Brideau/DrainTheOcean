@@ -1,13 +1,13 @@
 package com.whackdata.pngs
 
+import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
-import java.awt.{Color, Font, Graphics2D, Image, RenderingHints}
+import java.awt.{BasicStroke, Color, Font, Graphics2D, Image, RenderingHints}
 import java.io.File
 import java.nio.file.Paths
 import javax.imageio.ImageIO
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder
-import com.sun.prism.Graphics
 import com.whackdata.Utils.{ProcessedFile, getCsv}
 import com.whackdata.{ParseArgs, Utils}
 import org.slf4j.LoggerFactory
@@ -60,10 +60,11 @@ object AddTextPng {
     val timeRecordPrep = timeRecords.map{
       case elev::time => (elev.toDouble, time.head.toDouble)
     }.sortBy(-_._1)
-    val elevs = timeRecordPrep.map(_._1)
+    val elevs = timeRecordPrep.map(_._1.toLong)
 
     val times = timeRecordPrep.map(_._2)
-    val cumTime = times.scanLeft(0.0)((b, a) => b + a)
+    val cumTime = times.scanLeft(0.0)((b, a) => b + a).map(_.toLong)
+    val timeLookup = elevs.zip(cumTime).toMap
 
     logger.info("Starting encoder")
     val encoder = new AnimatedGifEncoder
@@ -71,22 +72,56 @@ object AddTextPng {
     encoder.setRepeat(0)
     encoder.setFrameRate(30)
 
+    // Properties for setting the text style
+    val formatter = java.text.NumberFormat.getIntegerInstance
+    val outlineColor = Color.white
+    val fillColor = Color.black
+    val stroke = new BasicStroke(10)
+
+
     def addText(layer: ProcessedFile) = Utils.timems {
       logger.info(s"Adding text for elevation ${layer.elev}")
-      val text = s"${math.abs(layer.elev)}m below current sea level"
+
+      // val year = timeLookup.get(layer.elev)
+      val yearStr = formatter.format(1000000)
+      val text = s"$yearStr Years After Pulling the Plug"
+
       val image = ImageIO.read(layer.path.toFile)
 
       val graphics = image.getGraphics.asInstanceOf[Graphics2D]
+      val originalColor = graphics.getColor
+      val originalStroke = graphics.getStroke
+      val originalHints = graphics.getRenderingHints
+
+      graphics.setFont(new Font("Roboto", Font.BOLD, 240))
+      graphics.setTransform(AffineTransform.getTranslateInstance(3200, 200))
+      val glyphVector = graphics.getFont.createGlyphVector(
+        graphics.getFontRenderContext, text
+      )
+      val textShape = glyphVector.getOutline
+
       graphics.setRenderingHint(
         RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON
       )
-      graphics.setColor(Color.BLACK)
-      graphics.setFont(new Font("Arial", Font.BOLD, 200))
-      graphics.drawString(text, 20, 160)
+      graphics.setRenderingHint(
+        RenderingHints.KEY_RENDERING,
+        RenderingHints.VALUE_RENDER_QUALITY
+      )
 
-      // SCALE_FAST, SCALE_SMOOTH
-      val scaled = toBufferedImage(image.getScaledInstance(1920, 1087, Image.SCALE_DEFAULT))
+      graphics.setColor(outlineColor)
+      graphics.setStroke(stroke)
+
+      graphics.draw(textShape)
+
+      graphics.setColor(fillColor)
+      graphics.fill(textShape)
+
+      graphics.setColor(originalColor)
+      graphics.setStroke(originalStroke)
+      graphics.setRenderingHints(originalHints)
+
+      val scaled = toBufferedImage(image.getScaledInstance(1920, 1087, Image.SCALE_SMOOTH))
 
       encoder.addFrame(scaled)
     }
